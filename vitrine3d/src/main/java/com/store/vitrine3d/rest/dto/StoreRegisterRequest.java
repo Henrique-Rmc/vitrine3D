@@ -28,4 +28,6 @@ public class StoreRegisterRequest {
     private String whatsappNumber;
 
     private String storeDescription;
+    private Long stateId;
+    private Long cityId;
 }

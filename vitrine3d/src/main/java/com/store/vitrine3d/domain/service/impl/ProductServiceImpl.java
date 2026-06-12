@@ -9,6 +9,7 @@ import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.service.ProductService;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
+import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,12 +50,42 @@ public class ProductServiceImpl implements ProductService {
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setMaterial(request.getMaterial());
-        product.setMulticolor(request.getMulticolor() != null ? request.getMulticolor() : false);
+        product.setMulticolor(Boolean.TRUE.equals(request.getMulticolor()));
         product.setDimensions(request.getDimensions());
         product.setImageUrl(imageUrl);
         product.setCategory(category);
         product.setStore(store);
 
+        return productRepository.save(product);
+    }
+
+    @Override
+    public Product update(Long id, ProductUpdateRequest request, MultipartFile image) {
+        Product product = findById(id);
+
+        if (request.getName() != null) product.setName(request.getName());
+        if (request.getDescription() != null) product.setDescription(request.getDescription());
+        if (request.getMaterial() != null) product.setMaterial(request.getMaterial());
+        if (request.getMulticolor() != null) product.setMulticolor(Boolean.TRUE.equals(request.getMulticolor()));
+        if (request.getDimensions() != null) product.setDimensions(request.getDimensions());
+        if (request.getIsVisible() != null) product.setIsVisible(request.getIsVisible());
+
+        if (request.getCategoryId() != null) {
+            product.setCategory(categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoria", request.getCategoryId())));
+        }
+
+        if (image != null && !image.isEmpty()) {
+            product.setImageUrl(storageService.uploadFile(image));
+        }
+
+        return productRepository.save(product);
+    }
+
+    @Override
+    public Product toggleVisibility(Long id) {
+        Product product = findById(id);
+        product.setIsVisible(!product.getIsVisible());
         return productRepository.save(product);
     }
 

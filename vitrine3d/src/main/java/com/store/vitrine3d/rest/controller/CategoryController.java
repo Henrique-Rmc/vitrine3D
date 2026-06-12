@@ -54,6 +54,13 @@ public class CategoryController {
                 .body(CategoryResponse.from(categoryService.save(category)));
     }
 
+    @Operation(summary = "Atualiza nome de uma categoria")
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoryResponse> update(@PathVariable Long id,
+                                                   @Valid @RequestBody CategoryCreateRequest request) {
+        return ResponseEntity.ok(CategoryResponse.from(categoryService.update(id, request.getName())));
+    }
+
     @Operation(summary = "Remove uma categoria por ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

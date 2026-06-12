@@ -1,0 +1,137 @@
+[
+  {
+    "name": "Acre",
+    "abbreviation": "AC",
+    "cities": ["Rio Branco", "Cruzeiro do Sul", "Sena Madureira", "Tarauacá", "Feijó", "Brasileia"]
+  },
+  {
+    "name": "Alagoas",
+    "abbreviation": "AL",
+    "cities": ["Maceió", "Arapiraca", "Palmeira dos Índios", "Rio Largo", "Penedo", "União dos Palmares", "São Miguel dos Campos", "Santana do Ipanema"]
+  },
+  {
+    "name": "Amapá",
+    "abbreviation": "AP",
+    "cities": ["Macapá", "Santana", "Laranjal do Jari", "Oiapoque", "Mazagão", "Porto Grande"]
+  },
+  {
+    "name": "Amazonas",
+    "abbreviation": "AM",
+    "cities": ["Manaus", "Parintins", "Itacoatiara", "Manacapuru", "Coari", "Tefé", "Tabatinga", "Maués", "Presidente Figueiredo"]
+  },
+  {
+    "name": "Bahia",
+    "abbreviation": "BA",
+    "cities": ["Salvador", "Feira de Santana", "Vitória da Conquista", "Camaçari", "Itabuna", "Juazeiro", "Lauro de Freitas", "Ilhéus", "Jequié", "Teixeira de Freitas", "Alagoinhas", "Barreiras", "Porto Seguro", "Paulo Afonso", "Santo Antônio de Jesus"]
+  },
+  {
+    "name": "Ceará",
+    "abbreviation": "CE",
+    "cities": ["Fortaleza", "Caucaia", "Juazeiro do Norte", "Maracanaú", "Sobral", "Crato", "Itapipoca", "Maranguape", "Iguatu", "Quixadá", "Pacatuba", "Canindé", "Russas"]
+  },
+  {
+    "name": "Distrito Federal",
+    "abbreviation": "DF",
+    "cities": ["Brasília", "Ceilândia", "Taguatinga", "Samambaia", "Planaltina", "Gama", "Sobradinho", "Águas Claras", "Guará", "Santa Maria", "Recanto das Emas", "Núcleo Bandeirante"]
+  },
+  {
+    "name": "Espírito Santo",
+    "abbreviation": "ES",
+    "cities": ["Vitória", "Serra", "Vila Velha", "Cariacica", "Cachoeiro de Itapemirim", "Linhares", "São Mateus", "Colatina", "Guarapari", "Aracruz", "Barra de São Francisco"]
+  },
+  {
+    "name": "Goiás",
+    "abbreviation": "GO",
+    "cities": ["Goiânia", "Aparecida de Goiânia", "Anápolis", "Rio Verde", "Luziânia", "Águas Lindas de Goiás", "Valparaíso de Goiás", "Trindade", "Formosa", "Novo Gama", "Catalão", "Jataí", "Itumbiara"]
+  },
+  {
+    "name": "Maranhão",
+    "abbreviation": "MA",
+    "cities": ["São Luís", "Imperatriz", "Timon", "Caxias", "Codó", "Paço do Lumiar", "Açailândia", "Bacabal", "Balsas", "Santa Inês", "Chapadinha", "Pinheiro"]
+  },
+  {
+    "name": "Mato Grosso",
+    "abbreviation": "MT",
+    "cities": ["Cuiabá", "Várzea Grande", "Rondonópolis", "Sinop", "Tangará da Serra", "Cáceres", "Alta Floresta", "Sorriso", "Lucas do Rio Verde", "Primavera do Leste", "Barra do Garças"]
+  },
+  {
+    "name": "Mato Grosso do Sul",
+    "abbreviation": "MS",
+    "cities": ["Campo Grande", "Dourados", "Três Lagoas", "Corumbá", "Ponta Porã", "Naviraí", "Nova Andradina", "Aquidauana", "Maracaju", "Rio Brilhante", "Sidrolândia"]
+  },
+  {
+    "name": "Minas Gerais",
+    "abbreviation": "MG",
+    "cities": ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Betim", "Montes Claros", "Ribeirão das Neves", "Uberaba", "Governador Valadares", "Ipatinga", "Santa Luzia", "Sete Lagoas", "Divinópolis", "Barbacena", "Poços de Caldas", "Patos de Minas", "Coronel Fabriciano", "Pouso Alegre", "Teófilo Otoni", "Varginha", "Lavras", "Muriaé", "Itabira"]
+  },
+  {
+    "name": "Pará",
+    "abbreviation": "PA",
+    "cities": ["Belém", "Ananindeua", "Santarém", "Marabá", "Castanhal", "Parauapebas", "Abaetetuba", "Cametá", "Altamira", "Barcarena", "Bragança", "Tucuruí"]
+  },
+  {
+    "name": "Paraíba",
+    "abbreviation": "PB",
+    "cities": ["João Pessoa", "Campina Grande", "Santa Rita", "Patos", "Bayeux", "Sousa", "Cabedelo", "Cajazeiras", "Guarabira", "Mamanguape"]
+  },
+  {
+    "name": "Paraná",
+    "abbreviation": "PR",
+    "cities": ["Curitiba", "Londrina", "Maringá", "Ponta Grossa", "Cascavel", "São José dos Pinhais", "Foz do Iguaçu", "Colombo", "Guarapuava", "Paranaguá", "Araucária", "Toledo", "Apucarana", "Pinhais", "Campo Largo", "Almirante Tamandaré", "Umuarama", "Cambé"]
+  },
+  {
+    "name": "Pernambuco",
+    "abbreviation": "PE",
+    "cities": ["Recife", "Caruaru", "Petrolina", "Olinda", "Paulista", "Jaboatão dos Guararapes", "Camarajibe", "Garanhuns", "Vitória de Santo Antão", "Cabo de Santo Agostinho", "Igarassu", "Santa Cruz do Capibaribe", "Salgueiro"]
+  },
+  {
+    "name": "Piauí",
+    "abbreviation": "PI",
+    "cities": ["Teresina", "Parnaíba", "Picos", "Piripiri", "Floriano", "Campo Maior", "Barras", "Esperantina", "União", "Oeiras", "José de Freitas"]
+  },
+  {
+    "name": "Rio de Janeiro",
+    "abbreviation": "RJ",
+    "cities": ["Rio de Janeiro", "São Gonçalo", "Duque de Caxias", "Nova Iguaçu", "Niterói", "Belford Roxo", "Campos dos Goytacazes", "São João de Meriti", "Petrópolis", "Volta Redonda", "Macaé", "Nova Friburgo", "Angra dos Reis", "Mesquita", "Nilópolis", "Queimados", "Itaboraí", "Maricá"]
+  },
+  {
+    "name": "Rio Grande do Norte",
+    "abbreviation": "RN",
+    "cities": ["Natal", "Mossoró", "Parnamirim", "São Gonçalo do Amarante", "Caicó", "Açu", "Ceará-Mirim", "Currais Novos", "João Câmara", "Macaíba", "Santa Cruz"]
+  },
+  {
+    "name": "Rio Grande do Sul",
+    "abbreviation": "RS",
+    "cities": ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas", "Santa Maria", "Gravataí", "Viamão", "Novo Hamburgo", "São Leopoldo", "Rio Grande", "Alvorada", "Passo Fundo", "Sapucaia do Sul", "Uruguaiana", "Santa Cruz do Sul", "Cachoeirinha", "Bagé", "Bento Gonçalves", "Erechim"]
+  },
+  {
+    "name": "Rondônia",
+    "abbreviation": "RO",
+    "cities": ["Porto Velho", "Ji-Paraná", "Ariquemes", "Cacoal", "Vilhena", "Rolim de Moura", "Guajará-Mirim", "Jaru", "Ouro Preto do Oeste"]
+  },
+  {
+    "name": "Roraima",
+    "abbreviation": "RR",
+    "cities": ["Boa Vista", "Rorainópolis", "Caracaraí", "Alto Alegre", "Mucajaí", "Pacaraima"]
+  },
+  {
+    "name": "Santa Catarina",
+    "abbreviation": "SC",
+    "cities": ["Florianópolis", "Joinville", "Blumenau", "São José", "Criciúma", "Chapecó", "Itajaí", "Jaraguá do Sul", "Palhoça", "Lages", "Balneário Camboriú", "Brusque", "Tubarão", "Camboriú", "São Bento do Sul", "Caçador", "Concórdia"]
+  },
+  {
+    "name": "São Paulo",
+    "abbreviation": "SP",
+    "cities": ["São Paulo", "Guarulhos", "Campinas", "São Bernardo do Campo", "Santo André", "Osasco", "Sorocaba", "Mauá", "Ribeirão Preto", "São José dos Campos", "Santos", "Diadema", "Mogi das Cruzes", "Jundiaí", "Piracicaba", "Carapicuíba", "Bauru", "Itaquaquecetuba", "São José do Rio Preto", "Franca", "Limeira", "Suzano", "Taboão da Serra", "Praia Grande", "Barueri", "Guarujá", "Taubaté", "São Vicente", "Americana", "Araraquara", "Jacareí", "Indaiatuba", "Sumaré", "Marília", "Presidente Prudente", "Araçatuba", "Rio Claro", "Hortolândia", "Cotia", "Embu das Artes"]
+  },
+  {
+    "name": "Sergipe",
+    "abbreviation": "SE",
+    "cities": ["Aracaju", "Nossa Senhora do Socorro", "Lagarto", "Itabaiana", "São Cristóvão", "Estância", "Simão Dias", "Propriá", "Tobias Barreto"]
+  },
+  {
+    "name": "Tocantins",
+    "abbreviation": "TO",
+    "cities": ["Palmas", "Araguaína", "Gurupi", "Porto Nacional", "Paraíso do Tocantins", "Guaraí", "Tocantinópolis", "Colinas do Tocantins"]
+  }
+]
