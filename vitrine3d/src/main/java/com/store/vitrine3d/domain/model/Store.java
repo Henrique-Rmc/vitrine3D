@@ -28,6 +28,9 @@ public class Store {
     @Column(nullable = false)
     private String storeName;
 
+    @Column(unique = true)
+    private String slug;
+
     private String whatsappNumber;
     private String storeDescription;
     private String logoUrl;
@@ -42,6 +45,14 @@ public class Store {
 
     @Column(nullable = false)
     private Boolean isActive = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id")
+    private State state;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private City city;
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
@@ -63,6 +74,9 @@ public class Store {
     public String getStoreName() { return storeName; }
     public void setStoreName(String storeName) { this.storeName = storeName; }
 
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+
     public String getWhatsappNumber() { return whatsappNumber; }
     public void setWhatsappNumber(String whatsappNumber) { this.whatsappNumber = whatsappNumber; }
 
@@ -77,6 +91,12 @@ public class Store {
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public State getState() { return state; }
+    public void setState(State state) { this.state = state; }
+
+    public City getCity() { return city; }
+    public void setCity(City city) { this.city = city; }
 
     public List<Product> getProducts() { return products; }
     public void setProducts(List<Product> products) { this.products = products; }

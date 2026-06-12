@@ -1,0 +1,232 @@
+================================================================================
+  VITRINE 3D — ESPECIFICAÇÕES DO PROJETO
+  Data: Junho 2026
+================================================================================
+
+================================================================================
+1. CASOS DE USO ESPERADOS (MVP)
+================================================================================
+
+UC-01  CADASTRO DE LOJISTA
+  O lojista acessa a plataforma, preenche nome de usuário, nome da loja,
+  e-mail, senha, número de WhatsApp e localização (estado/cidade) e cria
+  sua conta. A senha é armazenada com hash BCrypt.
+
+UC-02  GERENCIAMENTO DE CATEGORIAS
+  O lojista cria categorias personalizadas para organizar seus produtos.
+  O sistema também disponibiliza categorias globais pré-cadastradas
+  (Animes, Pokémon, Jogos, etc.) visíveis para todos.
+
+UC-03  CADASTRO DE PRODUTO
+  O lojista cadastra produtos informando nome, descrição, material,
+  dimensões, se é multicolorido, categoria e imagem. A imagem é enviada
+  para o MinIO e a URL resultante é salva no produto.
+
+UC-04  IMPORTAÇÃO VIA MAKERWORLD
+  O lojista informa a URL de um modelo no MakerWorld. O sistema faz
+  scraping da página via JSoup e extrai automaticamente título, descrição
+  e imagem principal para pré-preencher o formulário de cadastro.
+
+UC-05  VITRINE PÚBLICA
+  O cliente acessa a vitrine de uma loja via navegador ou app mobile.
+  A vitrine exibe os produtos com isVisible=true, organizados por categoria.
+  O cabeçalho exibe as categorias da loja como menu dinâmico.
+
+UC-06  FLUXO DE "COMPRA" VIA WHATSAPP
+  O cliente clica em "Tenho interesse" em um produto. O sistema gera uma
+  URL wa.me com o número do lojista e uma mensagem pré-preenchida contendo
+  o nome do produto, redirecionando para o WhatsApp.
+
+UC-07  SELEÇÃO DE LOCALIZAÇÃO NO CADASTRO
+  O front-end consulta a API de localização para exibir dropdowns com todos
+  os estados brasileiros e, ao selecionar um estado, as cidades daquele
+  estado. O lojista escolhe onde está localizado.
+
+UC-08  CONTROLE DE VISIBILIDADE DE PRODUTO
+  O lojista pode ocultar ou exibir um produto sem precisar excluí-lo
+  (campo isVisible). A vitrine pública exibe somente produtos visíveis.
+
+
+================================================================================
+2. FUNCIONALIDADES IMPLEMENTADAS
+================================================================================
+
+  DOMÍNIO / ENTIDADES
+  [x] Store (lojista): todos os campos do escopo + FK para State e City
+  [x] Category: suporte a categorias globais (isGlobal=true) e por loja
+  [x] Product: todos os campos + FK para Store e Category
+  [x] State: 27 estados brasileiros (pré-populados no boot)
+  [x] City: ~280 municípios principais por estado (pré-populados no boot)
+
+  REPOSITÓRIOS
+  [x] StoreRepository (existsByEmail, findByEmail)
+  [x] CategoryRepository
+  [x] ProductRepository (findByStoreId, findByStoreIdAndIsVisibleTrue)
+  [x] StateRepository
+  [x] CityRepository (findByStateIdOrderByNameAsc)
+
+  SERVIÇOS
+  [x] UserService / UserServiceImpl — cadastro com BCrypt + lookup state/city
+  [x] CategoryService / CategoryServiceImpl — CRUD
+  [x] ProductService / ProductServiceImpl — save com upload de imagem
+  [x] MakerWorldScraperService / MakerWorldScraperServiceImpl — scraping via JSoup
+
+  INFRAESTRUTURA
+  [x] StorageService / MinioStorageServiceImpl — upload para MinIO, cria bucket
+  [x] MinioProperties — @ConfigurationProperties para credenciais MinIO
+  [x] DataInitializer — seed de categorias globais + estados + cidades ao subir
+  [x] AppConfig — bean PasswordEncoder (BCrypt)
+  [x] CorsConfig — CORS liberado para todas as origens (*)
+
+  CONTROLLERS REST
+  [x] UserController     — POST /api/users/register | GET /api/users/{id}
+                           PUT /api/users/{id} | POST /api/users/{id}/logo | GET /api/users/store/{slug}
+  [x] CategoryController — GET /api/categories | POST /api/categories | PUT /api/categories/{id} | DELETE /api/categories/{id}
+  [x] ProductController  — POST /api/products (multipart) | PUT /api/products/{id} (multipart)
+                           PATCH /api/products/{id}/visibility | POST /api/products/scrape
+                           GET /api/products/store/{id}/public | GET /api/products/store/{id}
+                           GET /api/products/{id} | DELETE /api/products/{id}
+  [x] LocationController — GET /api/locations/states | GET /api/locations/states/{id}/cities
+
+  VALIDAÇÃO E TRATAMENTO DE ERROS
+  [x] Anotações Jakarta Validation nos DTOs de entrada (@NotBlank, @Email, @Size, @NotNull, @Pattern)
+  [x] GlobalExceptionHandler (@RestControllerAdvice)
+  [x] ResourceNotFoundException (404) com mensagem padronizada
+  [x] MethodArgumentNotValidException (400) com detalhes por campo
+  [x] StandardError DTO para respostas de erro padronizadas
+
+  DOCUMENTAÇÃO
+  [x] SpringDoc OpenAPI configurado (Swagger UI em /api-docs)
+  [x] @Tag e @Operation nos controllers
+
+  INFRAESTRUTURA DE EXECUÇÃO
+  [x] compose.yaml com PostgreSQL 16 + MinIO (healthcheck + volumes persistentes)
+  [x] Driver PostgreSQL adicionado ao build.gradle
+  [x] application.properties com datasource, JPA, MinIO e SpringDoc configurados
+  [x] spring-boot-docker-compose: containers sobem automaticamente com a aplicação
+
+  TESTES
+  [x] UserControllerTest — 6 testes (201, 400 email inválido, 400 senha curta,
+      400 campo em branco, 200 get, 404 não encontrado)
+  [x] ProductControllerTest — 7 testes (200 vitrine pública, 200 lista vazia,
+      200 get por id, 404 não encontrado, 200 lista completa, 201 criar, 204 delete)
+  
+  AUTENTICAÇÃO E AUTORIZAÇÃO
+  [x] SecurityConfig — regras públicas/privadas definidas (stateless JWT)
+  [x] Login — POST /api/auth/login retorna token JWT + dados da loja
+  [x] JWT — JwtTokenProvider (gera/valida), JwtAuthenticationFilter (intercepta requests)
+  [x] Roles — ROLE_STORE_OWNER atribuída no UserDetailsServiceImpl;
+      endpoints de escrita exigem autenticação; vitrine/localização são públicos
+  [x] oauth2-authorization-server removido; substituído por spring-security + JJWT 0.12.6
+
+  ENDPOINTS IMPLEMENTADOS (segunda iteração)
+  [x] PUT /api/users/{id} — atualização de dados do lojista
+  [x] PATCH /api/products/{id}/visibility — toggle de visibilidade
+  [x] PUT /api/products/{id} — edição completa de produto (multipart)
+  [x] PUT /api/categories/{id} — edição de categoria
+  [x] POST /api/products/scrape — recebe URL do MakerWorld, retorna MakerWorldScrapedDataDTO
+  [x] POST /api/users/{id}/logo — upload de logo da loja para MinIO
+  [x] GET /api/users/store/{slug} — perfil público da loja por slug
+
+================================================================================
+3. FUNCIONALIDADES NÃO IMPLEMENTADAS
+================================================================================
+
+
+  FUNCIONALIDADES DE NEGÓCIO
+  [ ] Produtos em destaque / mais vendidos (UC-05 home da vitrine)
+  [ ] Paginação nas listagens de produtos e categorias
+  [ ] Busca/filtro de produtos por nome ou categoria
+  [ ] Categorias filtradas por loja no menu dinâmico da vitrine
+  [ ] Contador de visualizações ou cliques no botão de WhatsApp
+  [ ] Ordenação customizável de produtos pelo lojista
+
+  QUALIDADE E OBSERVABILIDADE
+  [ ] spring-boot-starter-actuator (health check, métricas)
+  [ ] Testes para CategoryController e LocationController
+  [ ] Testes de integração com banco de dados real (Testcontainers)
+  [ ] Logging estruturado (ex: Logback + formato JSON para produção)
+
+
+================================================================================
+4. O QUE FALTA PARA O DEPLOY
+================================================================================
+
+  OBRIGATÓRIO (bloqueante)
+  -------------------------
+
+  4.1  SEGURANÇA  ✓ CONCLUÍDO
+       SecurityConfig, JWT e AuthController implementados.
+       jwt.secret em application.properties ainda precisa ser
+       externalizado como variável de ambiente antes do deploy (ver 4.2).
+
+  4.2  EXTERNALIZAR CREDENCIAIS  (ainda pendente)
+       O arquivo application.properties possui credenciais hardcoded.
+       Para produção, substituir por variáveis de ambiente:
+
+         spring.datasource.url=${DATABASE_URL}
+         spring.datasource.username=${DATABASE_USER}
+         spring.datasource.password=${DATABASE_PASSWORD}
+         minio.endpoint=${MINIO_ENDPOINT}
+         minio.access-key=${MINIO_ACCESS_KEY}
+         minio.secret-key=${MINIO_SECRET_KEY}
+         jwt.secret=${JWT_SECRET}
+
+  4.3  POLÍTICA DE ACESSO PÚBLICO DO MINIO
+       Os objetos enviados ao MinIO são privados por padrão. Para que as
+       imagens dos produtos sejam acessíveis publicamente via URL, é
+       necessário configurar a bucket policy como "public-read" ou
+       usar URLs pré-assinadas com expiração.
+
+  4.4  PERFIL DE PRODUÇÃO
+       Criar application-prod.properties com:
+         spring.jpa.hibernate.ddl-auto=validate  (não mais "update")
+         spring.jpa.show-sql=false
+       Usar Flyway ou Liquibase para migrações versionadas em vez de ddl-auto.
+
+  RECOMENDADO (não bloqueante, mas importante)
+  --------------------------------------------
+
+  4.5  DOCKERFILE
+       Criar Dockerfile para empacotar a aplicação como imagem Docker.
+       Exemplo mínimo:
+         FROM eclipse-temurin:17-jre
+         COPY build/libs/vitrine3d-*.jar app.jar
+         ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+  4.6  HTTPS / CERTIFICADO SSL
+       Configurar HTTPS no servidor de produção (Nginx como reverse proxy
+       com certificado Let's Encrypt, por exemplo).
+       Após HTTPS, ajustar CorsConfig para listar origens explícitas
+       em vez de "*" (recomendado com credentials).
+
+  4.7  HEALTH CHECK E MONITORAMENTO
+       Adicionar spring-boot-starter-actuator ao build.gradle:
+         implementation 'org.springframework.boot:spring-boot-starter-actuator'
+       Expor /actuator/health para verificação pelo orquestrador (Docker/K8s).
+
+  4.8  CORS PARA DOMÍNIO DE PRODUÇÃO
+       Trocar allowedOrigins("*") pelo domínio real do front-end para
+       evitar consumo não autorizado da API.
+
+  4.9  TESTES DE INTEGRAÇÃO
+       Adicionar Testcontainers para executar testes contra PostgreSQL e
+       MinIO reais em CI, garantindo que o seed do DataInitializer e
+       as queries JPA funcionem no banco real.
+
+================================================================================
+  RESUMO DO STATUS
+================================================================================
+
+  Camada de domínio (entidades, repositórios, serviços):  COMPLETA
+  Camada de API REST (controllers, DTOs, validação):       COMPLETA
+  Tratamento de erros e documentação OpenAPI:             COMPLETA
+  Infraestrutura de armazenamento (MinIO):                COMPLETA
+  Infraestrutura de banco (PostgreSQL + Docker Compose):  COMPLETA
+  Dados de localização (estados e cidades):               COMPLETA
+  Scraping MakerWorld (serviço + endpoint):               COMPLETO
+  Autenticação / Autorização:                             COMPLETA (JWT + SecurityConfig)
+  Front-end:                                              NÃO INICIADO
+  Deploy / CI-CD:                                         NÃO INICIADO
+
+================================================================================

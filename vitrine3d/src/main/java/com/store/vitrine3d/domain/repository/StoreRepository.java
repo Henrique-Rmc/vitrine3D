@@ -7,5 +7,7 @@ import java.util.Optional;
 
 public interface StoreRepository extends JpaRepository<Store, Long> {
     Optional<Store> findByEmail(String email);
+    Optional<Store> findBySlug(String slug);
     boolean existsByEmail(String email);
+    boolean existsBySlug(String slug);
 }
