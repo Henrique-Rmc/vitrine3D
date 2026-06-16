@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -23,38 +25,24 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProductController.class)
 @Import(GlobalExceptionHandler.class)
 @WithMockUser
 class ProductControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private ProductService productService;
-
-    @MockitoBean
-    private MakerWorldScraperService scraperService;
-
-    @MockitoBean
-    private StoreRepository storeRepository;
-
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private ProductService productService;
+    @MockitoBean private MakerWorldScraperService scraperService;
+    @MockitoBean private StoreRepository storeRepository;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
     private Store buildMockStore() {
         Store store = new Store();
@@ -82,6 +70,7 @@ class ProductControllerTest {
         product.setMulticolor(false);
         product.setDimensions("20x15x10cm");
         product.setIsVisible(true);
+        product.setFeatured(false);
         product.setCategory(buildMockCategory());
         product.setStore(buildMockStore());
         return product;
@@ -90,39 +79,43 @@ class ProductControllerTest {
     // --- GET /api/products/store/{id}/public ---
 
     @Test
-    void whenListPublicProducts_thenReturns200WithProductList() throws Exception {
-        when(productService.findVisibleByStoreId(1L)).thenReturn(List.of(buildMockProduct()));
+    void whenListPublicProducts_thenReturns200WithPagedList() throws Exception {
+        var page = new PageImpl<>(List.of(buildMockProduct()), PageRequest.of(0, 15), 1);
+        when(productService.findVisibleByStoreId(1L, 0, 15)).thenReturn(page);
 
         mockMvc.perform(get("/api/products/store/1/public"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Goku SSJ3"))
-                .andExpect(jsonPath("$[0].categoryName").value("Animes"))
-                .andExpect(jsonPath("$[0].whatsappUrl").value(
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Goku SSJ3"))
+                .andExpect(jsonPath("$.content[0].categoryName").value("Animes"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].whatsappUrl").value(
                         org.hamcrest.Matchers.containsString("wa.me/5511999999999")));
     }
 
     @Test
-    void whenListPublicProductsForEmptyStore_thenReturns200WithEmptyList() throws Exception {
-        when(productService.findVisibleByStoreId(99L)).thenReturn(List.of());
+    void whenListPublicProductsForEmptyStore_thenReturns200WithEmptyPage() throws Exception {
+        var page = new PageImpl<Product>(List.of(), PageRequest.of(0, 15), 0);
+        when(productService.findVisibleByStoreId(99L, 0, 15)).thenReturn(page);
 
         mockMvc.perform(get("/api/products/store/99/public"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     // --- GET /api/products/{id} ---
 
     @Test
-    void whenGetProductById_thenReturns200() throws Exception {
+    void whenGetProductById_thenReturns200WithClickCount() throws Exception {
         when(productService.findById(1L)).thenReturn(buildMockProduct());
+        when(productService.getClickCount(1L)).thenReturn(5L);
 
         mockMvc.perform(get("/api/products/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Goku SSJ3"))
-                .andExpect(jsonPath("$.categoryName").value("Animes"))
-                .andExpect(jsonPath("$.storeId").value(1));
+                .andExpect(jsonPath("$.clickCount").value(5));
     }
 
     @Test
@@ -139,14 +132,16 @@ class ProductControllerTest {
     // --- GET /api/products/store/{id} ---
 
     @Test
-    void whenListAllProductsByStore_thenReturnsAllIncludingHidden() throws Exception {
+    void whenListAllProductsByStore_thenReturnsPagedResults() throws Exception {
         Product hidden = buildMockProduct();
         hidden.setIsVisible(false);
-        when(productService.findByStoreId(1L)).thenReturn(List.of(buildMockProduct(), hidden));
+        var page = new PageImpl<>(List.of(buildMockProduct(), hidden), PageRequest.of(0, 15), 2);
+        when(productService.findByStoreId(1L, 0, 15)).thenReturn(page);
 
         mockMvc.perform(get("/api/products/store/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2));
     }
 
     // --- POST /api/products ---

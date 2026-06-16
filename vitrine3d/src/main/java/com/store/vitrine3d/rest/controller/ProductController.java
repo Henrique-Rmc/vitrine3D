@@ -3,11 +3,7 @@ package com.store.vitrine3d.rest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.store.vitrine3d.domain.service.MakerWorldScraperService;
 import com.store.vitrine3d.domain.service.ProductService;
-import com.store.vitrine3d.rest.dto.MakerWorldScrapedDataDTO;
-import com.store.vitrine3d.rest.dto.ProductCreateRequest;
-import com.store.vitrine3d.rest.dto.ProductResponse;
-import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
-import com.store.vitrine3d.rest.dto.ScrapeRequest;
+import com.store.vitrine3d.rest.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -65,32 +61,59 @@ public class ProductController {
         return ResponseEntity.ok(ProductResponse.from(productService.toggleVisibility(id)));
     }
 
+    @Operation(summary = "Toggle de destaque do produto (máx. 3 por loja)")
+    @PatchMapping("/{id}/featured")
+    public ResponseEntity<ProductResponse> toggleFeatured(@PathVariable Long id) {
+        return ResponseEntity.ok(ProductResponse.from(productService.toggleFeatured(id)));
+    }
+
+    @Operation(summary = "Registra clique no botão de WhatsApp e retorna total de cliques")
+    @PostMapping("/{id}/whatsapp-click")
+    public ResponseEntity<Long> registerWhatsappClick(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.registerWhatsappClick(id));
+    }
+
     @Operation(summary = "Faz scraping de uma URL do MakerWorld e retorna dados do modelo")
     @PostMapping("/scrape")
     public ResponseEntity<MakerWorldScrapedDataDTO> scrape(@Valid @RequestBody ScrapeRequest request) {
         return ResponseEntity.ok(scraperService.scrape(request.getUrl()));
     }
 
-    @Operation(summary = "Lista produtos visíveis de uma loja (vitrine pública)")
+    @Operation(summary = "Lista produtos visíveis de uma loja — vitrine pública (paginado, 15/página)")
     @GetMapping("/store/{storeId}/public")
-    public List<ProductResponse> listPublic(@PathVariable Long storeId) {
-        return productService.findVisibleByStoreId(storeId).stream()
+    public PageResponse<ProductResponse> listPublic(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        return PageResponse.from(
+                productService.findVisibleByStoreId(storeId, page, size),
+                ProductResponse::from);
+    }
+
+    @Operation(summary = "Lista produtos em destaque de uma loja (vitrine pública)")
+    @GetMapping("/store/{storeId}/featured")
+    public List<ProductResponse> listFeatured(@PathVariable Long storeId) {
+        return productService.findFeaturedByStoreId(storeId).stream()
                 .map(ProductResponse::from)
                 .toList();
     }
 
-    @Operation(summary = "Lista todos os produtos de uma loja (painel do lojista)")
+    @Operation(summary = "Lista todos os produtos de uma loja — painel do lojista (paginado, 15/página)")
     @GetMapping("/store/{storeId}")
-    public List<ProductResponse> listAll(@PathVariable Long storeId) {
-        return productService.findByStoreId(storeId).stream()
-                .map(ProductResponse::from)
-                .toList();
+    public PageResponse<ProductResponse> listAll(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        return PageResponse.from(
+                productService.findByStoreId(storeId, page, size),
+                ProductResponse::from);
     }
 
-    @Operation(summary = "Busca produto por ID")
+    @Operation(summary = "Busca produto por ID (inclui total de cliques no WhatsApp)")
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ProductResponse.from(productService.findById(id)));
+        var product = productService.findById(id);
+        return ResponseEntity.ok(ProductResponse.from(product, productService.getClickCount(id)));
     }
 
     @Operation(summary = "Remove um produto por ID")

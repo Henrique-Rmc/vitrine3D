@@ -25,6 +25,9 @@ public class Product {
     @Column(nullable = false)
     private Boolean isVisible = true;
 
+    @Column(nullable = false)
+    private Boolean featured = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -58,6 +61,9 @@ public class Product {
 
     public Boolean getIsVisible() { return isVisible; }
     public void setIsVisible(Boolean isVisible) { this.isVisible = isVisible; }
+
+    public Boolean getFeatured() { return featured; }
+    public void setFeatured(Boolean featured) { this.featured = featured; }
 
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }

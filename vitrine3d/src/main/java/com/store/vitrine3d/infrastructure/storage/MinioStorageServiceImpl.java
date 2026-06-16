@@ -45,7 +45,7 @@ public class MinioStorageServiceImpl implements StorageService {
                     .contentType(file.getContentType())
                     .build());
 
-            return props.getEndpoint() + "/" + props.getBucketName() + "/" + objectName;
+            return props.getPublicEndpoint() + "/" + props.getBucketName() + "/" + objectName;
 
         } catch (Exception e) {
             throw new RuntimeException("Falha ao enviar arquivo para o MinIO", e);
