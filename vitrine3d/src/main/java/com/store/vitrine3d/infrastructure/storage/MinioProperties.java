@@ -8,12 +8,16 @@ import org.springframework.stereotype.Component;
 public class MinioProperties {
 
     private String endpoint;
+    private String publicEndpoint;
     private String accessKey;
     private String secretKey;
     private String bucketName;
 
     public String getEndpoint() { return endpoint; }
     public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+
+    public String getPublicEndpoint() { return publicEndpoint != null ? publicEndpoint : endpoint; }
+    public void setPublicEndpoint(String publicEndpoint) { this.publicEndpoint = publicEndpoint; }
 
     public String getAccessKey() { return accessKey; }
     public void setAccessKey(String accessKey) { this.accessKey = accessKey; }

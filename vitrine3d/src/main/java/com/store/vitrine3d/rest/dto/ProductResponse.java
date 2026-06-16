@@ -17,12 +17,18 @@ public class ProductResponse {
     private Boolean multicolor;
     private String dimensions;
     private Boolean isVisible;
+    private Boolean featured;
     private Long categoryId;
     private String categoryName;
     private Long storeId;
     private String whatsappUrl;
+    private long clickCount;
 
     public static ProductResponse from(Product product) {
+        return from(product, 0L);
+    }
+
+    public static ProductResponse from(Product product, long clickCount) {
         ProductResponse dto = new ProductResponse();
         dto.setId(product.getId());
         dto.setName(product.getName());
@@ -32,10 +38,12 @@ public class ProductResponse {
         dto.setMulticolor(product.getMulticolor());
         dto.setDimensions(product.getDimensions());
         dto.setIsVisible(product.getIsVisible());
+        dto.setFeatured(product.getFeatured());
         dto.setCategoryId(product.getCategory().getId());
         dto.setCategoryName(product.getCategory().getName());
         dto.setStoreId(product.getStore().getId());
         dto.setWhatsappUrl(buildWhatsappUrl(product));
+        dto.setClickCount(clickCount);
         return dto;
     }
 

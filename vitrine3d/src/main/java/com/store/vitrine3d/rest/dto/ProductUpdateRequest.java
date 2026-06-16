@@ -11,4 +11,5 @@ public class ProductUpdateRequest {
     private String dimensions;
     private Long categoryId;
     private Boolean isVisible;
+    private Boolean featured;
 }

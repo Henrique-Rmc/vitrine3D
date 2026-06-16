@@ -1,6 +1,7 @@
 package com.store.vitrine3d.infrastructure.config;
 
 import com.store.vitrine3d.infrastructure.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Preflight CORS
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Autenticação
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 // Cadastro público
@@ -30,7 +33,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/api/users/**").permitAll()
                 // Vitrine pública
                 .requestMatchers(HttpMethod.GET, "/api/products/store/*/public").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/products/store/*/featured").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/*").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/products/*/whatsapp-click").permitAll()
                 // Localização
                 .requestMatchers(HttpMethod.GET, "/api/locations/**").permitAll()
                 // Categorias (leitura pública para menus)
@@ -40,6 +45,9 @@ public class SecurityConfig {
                 // Tudo mais requer autenticação
                 .anyRequest().authenticated()
             )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, e) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

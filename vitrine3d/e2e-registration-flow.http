@@ -1,0 +1,79 @@
+### ============================================================
+### Vitrine 3D — End-to-End Registration & Auth Flow
+### Compatible with: IntelliJ IDEA HTTP Client / VS Code REST Client
+### ============================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### ============================================================
+### STEP 1 — Register a new store owner
+### ============================================================
+### Run this first. After success (201), copy the returned "id"
+### and set it in the @storeId variable below (step 3).
+### ============================================================
+
+POST {{baseUrl}}/api/users/register
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@vitrine3d.com",
+  "password": "senha123",
+  "userName": "Henrique Dev",
+  "storeName": "Minha Loja 3D",
+  "whatsappNumber": "5511999999999",
+  "storeDescription": "Loja especializada em impressão 3D de alta qualidade.",
+  "stateId": 1,
+  "cityId": 1
+}
+
+### ============================================================
+### STEP 2 — Login and obtain JWT token
+### ============================================================
+### IntelliJ: the response handler script below automatically
+### captures the token into the client global variable "authToken".
+###
+### VS Code REST Client: manually copy the "token" value from
+### the response body and paste it into @authToken below (step 3).
+### ============================================================
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@vitrine3d.com",
+  "password": "senha123"
+}
+
+> {%
+  // IntelliJ HTTP Client — captures token automatically after login
+  client.global.set("authToken", response.body.token);
+  client.global.set("storeId", response.body.id);
+  client.log("Token captured: " + response.body.token);
+  client.log("Store ID captured: " + response.body.id);
+%}
+
+### ============================================================
+### STEP 3 — Upload store logo (multipart/form-data)
+### ============================================================
+### Prerequisites:
+###   - IntelliJ: token and storeId are set automatically by step 2.
+###   - VS Code: set @authToken and @storeId manually below.
+###
+### Replace the file path in the logo part with a real image on
+### your machine (JPG or PNG recommended, max ~5 MB).
+### ============================================================
+
+@authToken = eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0ZUB2aXRyaW5lM2QuY29tIiwiaWF0IjoxNzgxNTI2NzY4LCJleHAiOjE3ODE2MTMxNjh9.YpHRH3VMICqlHtD0wcvKkHSt4aM0dOWzV0pQNDweFyFizO3fAzeJyqp6K-IpPDbZWNocD4KDXeeNYNHkLeQWjw
+@storeId   = 1
+
+POST {{baseUrl}}/api/users/{{storeId}}/logo
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=----Boundary7MA4YWxkTrZu0gW
+
+------Boundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Type: image/png
+
+< ./logo.png
+------Boundary7MA4YWxkTrZu0gW--
