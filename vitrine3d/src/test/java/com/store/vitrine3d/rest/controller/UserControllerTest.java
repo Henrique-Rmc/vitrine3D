@@ -17,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -46,9 +47,11 @@ class UserControllerTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    private static final UUID STORE_UUID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+
     private Store buildMockStore() {
         Store store = new Store();
-        store.setId(1L);
+        store.setId(STORE_UUID);
         store.setEmail("loja@teste.com");
         store.setUserName("lojista");
         store.setStoreName("Loja 3D");
@@ -77,7 +80,7 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildValidRequest())))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.id").value(STORE_UUID.toString()))
                 .andExpect(jsonPath("$.email").value("loja@teste.com"))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
@@ -123,18 +126,19 @@ class UserControllerTest {
 
     @Test
     void whenGetByExistingId_thenReturns200() throws Exception {
-        when(userService.findById(1L)).thenReturn(Optional.of(buildMockStore()));
+        when(userService.findById(STORE_UUID)).thenReturn(Optional.of(buildMockStore()));
 
-        mockMvc.perform(get("/api/users/1"))
+        mockMvc.perform(get("/api/users/" + STORE_UUID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.storeName").value("Loja 3D"));
     }
 
     @Test
     void whenGetByNonExistentId_thenReturns404() throws Exception {
-        when(userService.findById(99L)).thenReturn(Optional.empty());
+        UUID missing = UUID.fromString("99999999-9999-9999-9999-999999999999");
+        when(userService.findById(missing)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/users/99"))
+        mockMvc.perform(get("/api/users/" + missing))
                 .andExpect(status().isNotFound());
     }
 }

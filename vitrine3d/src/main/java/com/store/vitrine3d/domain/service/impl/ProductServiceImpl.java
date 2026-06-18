@@ -12,15 +12,19 @@ import com.store.vitrine3d.domain.service.ProductService;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
 import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
+import com.store.vitrine3d.rest.exception.BusinessRuleException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -54,6 +58,8 @@ public class ProductServiceImpl implements ProductService {
         Store store = storeRepository.findById(request.getStoreId())
                 .orElseThrow(() -> new ResourceNotFoundException("Loja", request.getStoreId()));
 
+        assertStoreOwnership(store);
+
         String imageUrl = (image != null && !image.isEmpty()) ? storageService.uploadFile(image) : null;
 
         Product product = new Product();
@@ -62,6 +68,7 @@ public class ProductServiceImpl implements ProductService {
         product.setMaterial(request.getMaterial());
         product.setMulticolor(Boolean.TRUE.equals(request.getMulticolor()));
         product.setDimensions(request.getDimensions());
+        product.setPrice(request.getPrice());
         product.setImageUrl(imageUrl);
         product.setCategory(category);
         product.setStore(store);
@@ -72,6 +79,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product update(Long id, ProductUpdateRequest request, MultipartFile image) {
         Product product = findById(id);
+        assertProductOwnership(product);
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
@@ -79,16 +87,13 @@ public class ProductServiceImpl implements ProductService {
         if (request.getMulticolor() != null) product.setMulticolor(Boolean.TRUE.equals(request.getMulticolor()));
         if (request.getDimensions() != null) product.setDimensions(request.getDimensions());
         if (request.getIsVisible() != null) product.setIsVisible(request.getIsVisible());
-
-        if (request.getFeatured() != null) {
-            applyFeatured(product, request.getFeatured());
-        }
+        if (request.getFeatured() != null) applyFeatured(product, request.getFeatured());
+        if (request.getPrice() != null) product.setPrice(request.getPrice());
 
         if (request.getCategoryId() != null) {
             product.setCategory(categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Categoria", request.getCategoryId())));
         }
-
         if (image != null && !image.isEmpty()) {
             product.setImageUrl(storageService.uploadFile(image));
         }
@@ -99,6 +104,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product toggleVisibility(Long id) {
         Product product = findById(id);
+        assertProductOwnership(product);
         product.setIsVisible(!product.getIsVisible());
         return productRepository.save(product);
     }
@@ -106,27 +112,29 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product toggleFeatured(Long id) {
         Product product = findById(id);
+        assertProductOwnership(product);
         applyFeatured(product, !Boolean.TRUE.equals(product.getFeatured()));
         return productRepository.save(product);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Product> findByStoreId(Long storeId, int page, int size) {
+    public Page<Product> findByStoreId(UUID storeId, int page, int size) {
+        assertStoreOwnership(storeId);
         return productRepository.findByStoreId(storeId,
                 PageRequest.of(page, size, Sort.by("id").descending()));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Product> findVisibleByStoreId(Long storeId, int page, int size) {
+    public Page<Product> findVisibleByStoreId(UUID storeId, int page, int size) {
         return productRepository.findByStoreIdAndIsVisibleTrue(storeId,
                 PageRequest.of(page, size, Sort.by("featured").descending().and(Sort.by("id").descending())));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Product> findFeaturedByStoreId(Long storeId) {
+    public List<Product> findFeaturedByStoreId(UUID storeId) {
         return productRepository.findByStoreIdAndFeaturedTrue(storeId);
     }
 
@@ -139,6 +147,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void delete(Long id) {
+        Product product = findById(id);
+        assertProductOwnership(product);
         productRepository.deleteById(id);
     }
 
@@ -155,12 +165,39 @@ public class ProductServiceImpl implements ProductService {
         return whatsappClickRepository.countByProductId(productId);
     }
 
+    private Store getCurrentStore() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return storeRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found after authentication"));
+    }
+
+    private void assertStoreOwnership(Store store) {
+        Store current = getCurrentStore();
+        if (!store.getId().equals(current.getId())) {
+            throw new AccessDeniedException("You do not have permission to access this store.");
+        }
+    }
+
+    private void assertStoreOwnership(UUID storeId) {
+        Store current = getCurrentStore();
+        if (!storeId.equals(current.getId())) {
+            throw new AccessDeniedException("You do not have permission to access this store.");
+        }
+    }
+
+    private void assertProductOwnership(Product product) {
+        Store current = getCurrentStore();
+        if (!product.getStore().getId().equals(current.getId())) {
+            throw new AccessDeniedException("You do not have permission to modify this product.");
+        }
+    }
+
     private void applyFeatured(Product product, boolean newValue) {
         if (newValue && !Boolean.TRUE.equals(product.getFeatured())) {
             long count = productRepository.countByStoreIdAndFeaturedTrue(product.getStore().getId());
             if (count >= MAX_FEATURED) {
-                throw new IllegalArgumentException(
-                        "Limite de " + MAX_FEATURED + " produtos em destaque atingido para esta loja.");
+                throw new BusinessRuleException("FEATURED_LIMIT_EXCEEDED",
+                        "Featured product limit of " + MAX_FEATURED + " reached for this store.");
             }
         }
         product.setFeatured(newValue);

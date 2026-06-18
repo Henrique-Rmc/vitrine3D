@@ -2,6 +2,8 @@ package com.store.vitrine3d.domain.model;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "products")
 public class Product {
@@ -16,6 +18,9 @@ public class Product {
     private String description;
     private String imageUrl;
     private String material;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal price;
 
     @Column(nullable = false)
     private Boolean multicolor = false;
@@ -52,6 +57,9 @@ public class Product {
 
     public String getMaterial() { return material; }
     public void setMaterial(String material) { this.material = material; }
+
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public Boolean getMulticolor() { return multicolor; }
     public void setMulticolor(Boolean multicolor) { this.multicolor = multicolor; }

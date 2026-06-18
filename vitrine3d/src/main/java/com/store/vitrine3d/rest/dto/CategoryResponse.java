@@ -3,13 +3,15 @@ package com.store.vitrine3d.rest.dto;
 import com.store.vitrine3d.domain.model.Category;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class CategoryResponse {
 
     private Long id;
     private String name;
     private Boolean isGlobal;
-    private Long storeId;
+    private UUID storeId;
 
     public static CategoryResponse from(Category category) {
         CategoryResponse dto = new CategoryResponse();

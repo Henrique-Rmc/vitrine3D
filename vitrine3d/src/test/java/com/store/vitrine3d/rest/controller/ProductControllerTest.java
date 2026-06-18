@@ -24,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WithMockUser
 class ProductControllerTest {
 
+    private static final UUID STORE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
@@ -46,7 +49,7 @@ class ProductControllerTest {
 
     private Store buildMockStore() {
         Store store = new Store();
-        store.setId(1L);
+        store.setId(STORE_UUID);
         store.setStoreName("Loja 3D");
         store.setWhatsappNumber("5511999999999");
         store.setIsActive(true);
@@ -81,9 +84,9 @@ class ProductControllerTest {
     @Test
     void whenListPublicProducts_thenReturns200WithPagedList() throws Exception {
         var page = new PageImpl<>(List.of(buildMockProduct()), PageRequest.of(0, 15), 1);
-        when(productService.findVisibleByStoreId(1L, 0, 15)).thenReturn(page);
+        when(productService.findVisibleByStoreId(STORE_UUID, 0, 15)).thenReturn(page);
 
-        mockMvc.perform(get("/api/products/store/1/public"))
+        mockMvc.perform(get("/api/products/store/" + STORE_UUID + "/public"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Goku SSJ3"))
@@ -95,10 +98,11 @@ class ProductControllerTest {
 
     @Test
     void whenListPublicProductsForEmptyStore_thenReturns200WithEmptyPage() throws Exception {
+        var emptyUuid = UUID.randomUUID();
         var page = new PageImpl<Product>(List.of(), PageRequest.of(0, 15), 0);
-        when(productService.findVisibleByStoreId(99L, 0, 15)).thenReturn(page);
+        when(productService.findVisibleByStoreId(emptyUuid, 0, 15)).thenReturn(page);
 
-        mockMvc.perform(get("/api/products/store/99/public"))
+        mockMvc.perform(get("/api/products/store/" + emptyUuid + "/public"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0))
                 .andExpect(jsonPath("$.totalElements").value(0));
@@ -136,9 +140,9 @@ class ProductControllerTest {
         Product hidden = buildMockProduct();
         hidden.setIsVisible(false);
         var page = new PageImpl<>(List.of(buildMockProduct(), hidden), PageRequest.of(0, 15), 2);
-        when(productService.findByStoreId(1L, 0, 15)).thenReturn(page);
+        when(productService.findByStoreId(STORE_UUID, 0, 15)).thenReturn(page);
 
-        mockMvc.perform(get("/api/products/store/1"))
+        mockMvc.perform(get("/api/products/store/" + STORE_UUID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2));
@@ -152,7 +156,7 @@ class ProductControllerTest {
         request.setName("Pikachu");
         request.setMulticolor(true);
         request.setCategoryId(1L);
-        request.setStoreId(1L);
+        request.setStoreId(STORE_UUID);
 
         MockMultipartFile dataJson = new MockMultipartFile(
                 "data", "", MediaType.APPLICATION_JSON_VALUE,
