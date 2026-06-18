@@ -19,6 +19,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -47,7 +49,7 @@ class ProductCreationIntegrationTest {
     private StorageService storageService;
 
     private String jwtToken;
-    private Long storeId;
+    private UUID storeId;
     private Long categoryId;
 
     @BeforeEach
@@ -68,8 +70,8 @@ class ProductCreationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        storeId = objectMapper.readTree(registerResult.getResponse().getContentAsString())
-                .get("id").asLong();
+        storeId = UUID.fromString(objectMapper.readTree(registerResult.getResponse().getContentAsString())
+                .get("id").asText());
 
         // 2 — login, captura token
         String loginBody = """
@@ -113,7 +115,7 @@ class ProductCreationIntegrationTest {
                 .andExpect(jsonPath("$.multicolor").value(true))
                 .andExpect(jsonPath("$.isVisible").value(true))
                 .andExpect(jsonPath("$.categoryName").isNotEmpty())
-                .andExpect(jsonPath("$.storeId").value(storeId))
+                .andExpect(jsonPath("$.storeId").value(storeId.toString()))
                 .andReturn();
 
         Long productId = objectMapper.readTree(result.getResponse().getContentAsString())

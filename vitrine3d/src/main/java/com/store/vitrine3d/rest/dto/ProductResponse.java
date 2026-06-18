@@ -3,8 +3,10 @@ package com.store.vitrine3d.rest.dto;
 import com.store.vitrine3d.domain.model.Product;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @Data
 public class ProductResponse {
@@ -18,9 +20,10 @@ public class ProductResponse {
     private String dimensions;
     private Boolean isVisible;
     private Boolean featured;
+    private BigDecimal price;
     private Long categoryId;
     private String categoryName;
-    private Long storeId;
+    private UUID storeId;
     private String whatsappUrl;
     private long clickCount;
 
@@ -39,6 +42,7 @@ public class ProductResponse {
         dto.setDimensions(product.getDimensions());
         dto.setIsVisible(product.getIsVisible());
         dto.setFeatured(product.getFeatured());
+        dto.setPrice(product.getPrice());
         dto.setCategoryId(product.getCategory().getId());
         dto.setCategoryName(product.getCategory().getName());
         dto.setStoreId(product.getStore().getId());

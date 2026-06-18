@@ -1,11 +1,12 @@
 package com.store.vitrine3d.infrastructure.config;
 
+import com.store.vitrine3d.infrastructure.security.JwtAuthenticationEntryPoint;
 import com.store.vitrine3d.infrastructure.security.JwtAuthenticationFilter;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,18 +20,20 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
+                                    JwtAuthenticationEntryPoint entryPoint) throws Exception {
         http
+            .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Preflight CORS
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Autenticação
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 // Cadastro público
                 .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/users/**").permitAll()
+                // Perfis públicos de loja — apenas um nível de path para não expor rotas futuras
+                .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/store/*").permitAll()
                 // Vitrine pública
                 .requestMatchers(HttpMethod.GET, "/api/products/store/*/public").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/store/*/featured").permitAll()
@@ -38,16 +41,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/products/*/whatsapp-click").permitAll()
                 // Localização
                 .requestMatchers(HttpMethod.GET, "/api/locations/**").permitAll()
-                // Categorias (leitura pública para menus)
+                // Categorias (leitura pública)
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categories/store/**").permitAll()
                 // Documentação
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Tudo mais requer autenticação
                 .anyRequest().authenticated()
             )
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, e) ->
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

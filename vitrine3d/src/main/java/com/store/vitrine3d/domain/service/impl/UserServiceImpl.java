@@ -8,6 +8,7 @@ import com.store.vitrine3d.domain.service.UserService;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
 import com.store.vitrine3d.rest.dto.StoreUpdateRequest;
+import com.store.vitrine3d.rest.exception.EmailAlreadyExistsException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.text.Normalizer;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -42,7 +44,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Store register(StoreRegisterRequest request) {
         if (storeRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("E-mail já cadastrado: " + request.getEmail());
+            throw new EmailAlreadyExistsException(request.getEmail());
         }
 
         Store store = new Store();
@@ -67,9 +69,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Store update(Long id, StoreUpdateRequest request) {
+    public Store update(UUID id, StoreUpdateRequest request) {
         Store store = storeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loja", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
 
         if (request.getUserName() != null) store.setUserName(request.getUserName());
         if (request.getWhatsappNumber() != null) store.setWhatsappNumber(request.getWhatsappNumber());
@@ -93,15 +95,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Store uploadLogo(Long id, MultipartFile logo) {
+    public Store uploadLogo(UUID id, MultipartFile logo) {
         Store store = storeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loja", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
         store.setLogoUrl(storageService.uploadFile(logo));
         return storeRepository.save(store);
     }
 
     @Override
-    public Optional<Store> findById(Long id) {
+    public Optional<Store> findById(UUID id) {
         return storeRepository.findById(id);
     }
 

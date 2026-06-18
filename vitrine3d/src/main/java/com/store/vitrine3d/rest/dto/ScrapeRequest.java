@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class ScrapeRequest {
-    @NotBlank
+    @NotBlank(message = "URL is required")
     private String url;
 }

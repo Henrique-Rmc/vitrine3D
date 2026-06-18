@@ -3,10 +3,12 @@ package com.store.vitrine3d.rest.dto;
 import com.store.vitrine3d.domain.model.Store;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class StoreResponse {
 
-    private Long id;
+    private UUID id;
     private String email;
     private String userName;
     private String storeName;
@@ -21,17 +23,28 @@ public class StoreResponse {
     private String cityName;
     private String slug;
 
+    // Resposta completa — para o próprio lojista autenticado
     public static StoreResponse from(Store store) {
-        StoreResponse dto = new StoreResponse();
-        dto.setId(store.getId());
+        StoreResponse dto = baseFields(store);
         dto.setEmail(store.getEmail());
         dto.setUserName(store.getUserName());
+        dto.setIsActive(store.getIsActive());
+        return dto;
+    }
+
+    // Resposta pública — sem dados pessoais (email, userName, isActive)
+    public static StoreResponse fromPublic(Store store) {
+        return baseFields(store);
+    }
+
+    private static StoreResponse baseFields(Store store) {
+        StoreResponse dto = new StoreResponse();
+        dto.setId(store.getId());
         dto.setStoreName(store.getStoreName());
         dto.setSlug(store.getSlug());
         dto.setWhatsappNumber(store.getWhatsappNumber());
         dto.setStoreDescription(store.getStoreDescription());
         dto.setLogoUrl(store.getLogoUrl());
-        dto.setIsActive(store.getIsActive());
 
         if (store.getState() != null) {
             dto.setStateId(store.getState().getId());

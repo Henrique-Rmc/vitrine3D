@@ -44,7 +44,7 @@ public class AuthController {
         String token = jwtTokenProvider.generateToken(auth.getName());
 
         Store store = userService.findByEmail(auth.getName())
-                .orElseThrow(() -> new IllegalStateException("Loja não encontrada após autenticação"));
+                .orElseThrow(() -> new IllegalStateException("Store not found after successful authentication"));
 
         return ResponseEntity.ok(new LoginResponse(token, store.getId(), store.getEmail(), store.getStoreName()));
     }
