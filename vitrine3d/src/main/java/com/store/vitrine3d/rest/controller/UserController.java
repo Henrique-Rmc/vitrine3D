@@ -67,12 +67,17 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Perfil público da loja por slug")
+    @Operation(summary = "Perfil público da loja por slug. Retorna 301 se o slug for histórico.")
     @GetMapping("/store/{slug}")
     public ResponseEntity<StoreResponse> getBySlug(@PathVariable String slug) {
-        return userService.findBySlug(slug)
-                .map(store -> ResponseEntity.ok(StoreResponse.fromPublic(store)))
-                .orElse(ResponseEntity.notFound().build());
+        Store store = userService.findBySlug(slug).orElse(null);
+        if (store == null) return ResponseEntity.notFound().build();
+        if (!slug.equals(store.getSlug())) {
+            return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+                    .header("Location", "/api/users/store/" + store.getSlug())
+                    .build();
+        }
+        return ResponseEntity.ok(StoreResponse.fromPublic(store));
     }
 
     private boolean isOwner(UserDetails principal, UUID targetId) {
