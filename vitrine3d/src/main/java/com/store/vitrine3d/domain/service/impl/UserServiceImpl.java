@@ -1,9 +1,11 @@
 package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.domain.model.StoreSlugHistory;
 import com.store.vitrine3d.domain.repository.CityRepository;
 import com.store.vitrine3d.domain.repository.StateRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
+import com.store.vitrine3d.domain.repository.StoreSlugHistoryRepository;
 import com.store.vitrine3d.domain.service.UserService;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
@@ -24,17 +26,20 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final StoreRepository storeRepository;
+    private final StoreSlugHistoryRepository slugHistoryRepository;
     private final StateRepository stateRepository;
     private final CityRepository cityRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
 
     public UserServiceImpl(StoreRepository storeRepository,
+                           StoreSlugHistoryRepository slugHistoryRepository,
                            StateRepository stateRepository,
                            CityRepository cityRepository,
                            PasswordEncoder passwordEncoder,
                            StorageService storageService) {
         this.storeRepository = storeRepository;
+        this.slugHistoryRepository = slugHistoryRepository;
         this.stateRepository = stateRepository;
         this.cityRepository = cityRepository;
         this.passwordEncoder = passwordEncoder;
@@ -78,8 +83,10 @@ public class UserServiceImpl implements UserService {
         if (request.getStoreDescription() != null) store.setStoreDescription(request.getStoreDescription());
 
         if (request.getStoreName() != null && !request.getStoreName().equals(store.getStoreName())) {
+            String oldSlug = store.getSlug();
             store.setStoreName(request.getStoreName());
             store.setSlug(generateUniqueSlug(request.getStoreName()));
+            slugHistoryRepository.save(new StoreSlugHistory(oldSlug, store));
         }
 
         if (request.getStateId() != null) {
@@ -113,8 +120,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Store> findBySlug(String slug) {
-        return storeRepository.findBySlug(slug);
+        Optional<Store> current = storeRepository.findBySlug(slug);
+        if (current.isPresent()) return current;
+        return slugHistoryRepository.findBySlug(slug).map(StoreSlugHistory::getStore);
     }
 
     private String generateUniqueSlug(String storeName) {
@@ -126,7 +136,7 @@ public class UserServiceImpl implements UserService {
 
         String slug = base;
         int suffix = 2;
-        while (storeRepository.existsBySlug(slug)) {
+        while (storeRepository.existsBySlug(slug) || slugHistoryRepository.existsBySlug(slug)) {
             slug = base + "-" + suffix++;
         }
         return slug;
