@@ -3,7 +3,13 @@ package com.store.vitrine3d.rest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.store.vitrine3d.domain.service.MakerWorldScraperService;
 import com.store.vitrine3d.domain.service.ProductService;
-import com.store.vitrine3d.rest.dto.*;
+import com.store.vitrine3d.rest.dto.MakerWorldScrapedDataDTO;
+import com.store.vitrine3d.rest.dto.PageResponse;
+import com.store.vitrine3d.rest.dto.ProductCreateRequest;
+import com.store.vitrine3d.rest.dto.ProductFilter;
+import com.store.vitrine3d.rest.dto.ProductResponse;
+import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
+import com.store.vitrine3d.rest.dto.ScrapeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -115,6 +121,18 @@ public class ProductController {
                 .toList();
     }
 
+    @Operation(summary = "Busca produtos visíveis com filtros combinados (público)")
+    @GetMapping("/store/{storeId}/search")
+    public PageResponse<ProductResponse> search(
+            @PathVariable UUID storeId,
+            @ModelAttribute ProductFilter filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        return PageResponse.from(
+                productService.search(storeId, filter, page, size),
+                ProductResponse::from);
+    }
+
     @Operation(summary = "Lista todos os produtos de uma loja — painel do lojista (paginado, 15/página)")
     @GetMapping("/store/{storeId}")
     public PageResponse<ProductResponse> listAll(
@@ -131,6 +149,26 @@ public class ProductController {
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         var product = productService.findById(id);
         return ResponseEntity.ok(ProductResponse.from(product, productService.getClickCount(id)));
+    }
+
+    @Operation(
+        summary = "Reordena produtos da loja (requer autenticação)",
+        description = "Recebe uma lista de IDs de produtos na nova ordem desejada. O sortOrder de cada produto é atualizado para o índice correspondente na lista (0, 1, 2...). Todos os produtos devem pertencer à loja autenticada.",
+        requestBody = @RequestBody(
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                schema = @io.swagger.v3.oas.annotations.media.Schema(
+                    type = "array",
+                    example = "[42, 7, 15, 3]"
+                )
+            )
+        )
+    )
+    @PutMapping("/reorder")
+    public ResponseEntity<Void> reorder(@org.springframework.web.bind.annotation.RequestBody List<Long> productIds) {
+        productService.reorder(productIds);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Remove um produto por ID")

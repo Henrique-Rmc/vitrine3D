@@ -69,8 +69,6 @@ class ProductControllerTest {
         product.setId(1L);
         product.setName("Goku SSJ3");
         product.setDescription("Figura articulada em PLA");
-        product.setMaterial("PLA");
-        product.setMulticolor(false);
         product.setDimensions("20x15x10cm");
         product.setIsVisible(true);
         product.setFeatured(false);
@@ -154,7 +152,6 @@ class ProductControllerTest {
     void whenCreateProductWithValidMultipart_thenReturns201() throws Exception {
         ProductCreateRequest request = new ProductCreateRequest();
         request.setName("Pikachu");
-        request.setMulticolor(true);
         request.setCategoryId(1L);
         request.setStoreId(STORE_UUID);
 

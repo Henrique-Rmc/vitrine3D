@@ -41,9 +41,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/products/*/whatsapp-click").permitAll()
                 // Localização
                 .requestMatchers(HttpMethod.GET, "/api/locations/**").permitAll()
-                // Categorias (leitura pública)
+                // Vitrine pública — busca com filtros
+                .requestMatchers(HttpMethod.GET, "/api/products/store/*/search").permitAll()
+                // Categorias e Materiais (leitura pública)
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/store/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/materials").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/materials/store/**").permitAll()
                 // Documentação
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Tudo mais requer autenticação

@@ -17,18 +17,19 @@ public class Product {
 
     private String description;
     private String imageUrl;
-    private String material;
+    private String dimensions;
 
     @Column(precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(nullable = false)
-    private Boolean multicolor = false;
-
-    private String dimensions;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "material_id")
+    private Material material;
 
     @Column(nullable = false)
     private Boolean isVisible = true;
+
+    private Integer sortOrder;
 
     @Column(nullable = false)
     private Boolean featured = false;
@@ -55,14 +56,11 @@ public class Product {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public String getMaterial() { return material; }
-    public void setMaterial(String material) { this.material = material; }
+    public Material getMaterial() { return material; }
+    public void setMaterial(Material material) { this.material = material; }
 
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
-
-    public Boolean getMulticolor() { return multicolor; }
-    public void setMulticolor(Boolean multicolor) { this.multicolor = multicolor; }
 
     public String getDimensions() { return dimensions; }
     public void setDimensions(String dimensions) { this.dimensions = dimensions; }
@@ -78,4 +76,7 @@ public class Product {
 
     public Store getStore() { return store; }
     public void setStore(Store store) { this.store = store; }
+
+    public Integer getSortOrder() { return sortOrder; }
+    public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
 }

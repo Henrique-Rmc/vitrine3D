@@ -16,15 +16,11 @@ public class ProductUpdateRequest {
     @Size(max = 2000, message = "Description must not exceed 2000 characters")
     private String description;
 
-    @Size(max = 100, message = "Material must not exceed 100 characters")
-    private String material;
-
-    private Boolean multicolor;
-
     @Size(max = 100, message = "Dimensions must not exceed 100 characters")
     private String dimensions;
 
     private Long categoryId;
+    private Long materialId;
     private Boolean isVisible;
     private Boolean featured;
 

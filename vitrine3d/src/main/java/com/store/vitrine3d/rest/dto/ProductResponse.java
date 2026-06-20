@@ -15,14 +15,14 @@ public class ProductResponse {
     private String name;
     private String description;
     private String imageUrl;
-    private String material;
-    private Boolean multicolor;
     private String dimensions;
     private Boolean isVisible;
     private Boolean featured;
     private BigDecimal price;
     private Long categoryId;
     private String categoryName;
+    private Long materialId;
+    private String materialName;
     private UUID storeId;
     private String whatsappUrl;
     private long clickCount;
@@ -37,14 +37,16 @@ public class ProductResponse {
         dto.setName(product.getName());
         dto.setDescription(product.getDescription());
         dto.setImageUrl(product.getImageUrl());
-        dto.setMaterial(product.getMaterial());
-        dto.setMulticolor(product.getMulticolor());
         dto.setDimensions(product.getDimensions());
         dto.setIsVisible(product.getIsVisible());
         dto.setFeatured(product.getFeatured());
         dto.setPrice(product.getPrice());
         dto.setCategoryId(product.getCategory().getId());
         dto.setCategoryName(product.getCategory().getName());
+        if (product.getMaterial() != null) {
+            dto.setMaterialId(product.getMaterial().getId());
+            dto.setMaterialName(product.getMaterial().getName());
+        }
         dto.setStoreId(product.getStore().getId());
         dto.setWhatsappUrl(buildWhatsappUrl(product));
         dto.setClickCount(clickCount);

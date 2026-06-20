@@ -96,8 +96,6 @@ class ProductCreationIntegrationTest {
         ProductCreateRequest productRequest = new ProductCreateRequest();
         productRequest.setName("Goku SSJ4");
         productRequest.setDescription("Figura articulada em resina");
-        productRequest.setMaterial("Resina");
-        productRequest.setMulticolor(true);
         productRequest.setDimensions("25x15x12cm");
         productRequest.setCategoryId(categoryId);
         productRequest.setStoreId(storeId);
@@ -111,8 +109,6 @@ class ProductCreationIntegrationTest {
                         .header("Authorization", "Bearer " + jwtToken))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Goku SSJ4"))
-                .andExpect(jsonPath("$.material").value("Resina"))
-                .andExpect(jsonPath("$.multicolor").value(true))
                 .andExpect(jsonPath("$.isVisible").value(true))
                 .andExpect(jsonPath("$.categoryName").isNotEmpty())
                 .andExpect(jsonPath("$.storeId").value(storeId.toString()))
@@ -129,7 +125,6 @@ class ProductCreationIntegrationTest {
     void whenCreateProductWithoutAuth_thenReturns401() throws Exception {
         ProductCreateRequest productRequest = new ProductCreateRequest();
         productRequest.setName("Pikachu");
-        productRequest.setMulticolor(false);
         productRequest.setCategoryId(categoryId);
         productRequest.setStoreId(storeId);
 
