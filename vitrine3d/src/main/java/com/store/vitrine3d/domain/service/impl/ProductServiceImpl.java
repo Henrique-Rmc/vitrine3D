@@ -1,22 +1,27 @@
 package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.Category;
+import com.store.vitrine3d.domain.model.Material;
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.WhatsappClick;
 import com.store.vitrine3d.domain.repository.CategoryRepository;
+import com.store.vitrine3d.domain.repository.MaterialRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
 import com.store.vitrine3d.domain.service.ProductService;
+import com.store.vitrine3d.domain.specification.ProductSpec;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
+import com.store.vitrine3d.rest.dto.ProductFilter;
 import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
 import com.store.vitrine3d.rest.exception.BusinessRuleException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -34,17 +39,20 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final MaterialRepository materialRepository;
     private final StoreRepository storeRepository;
     private final StorageService storageService;
     private final WhatsappClickRepository whatsappClickRepository;
 
     public ProductServiceImpl(ProductRepository productRepository,
                                CategoryRepository categoryRepository,
+                               MaterialRepository materialRepository,
                                StoreRepository storeRepository,
                                StorageService storageService,
                                WhatsappClickRepository whatsappClickRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.materialRepository = materialRepository;
         this.storeRepository = storeRepository;
         this.storageService = storageService;
         this.whatsappClickRepository = whatsappClickRepository;
@@ -53,20 +61,24 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product save(ProductCreateRequest request, MultipartFile image) {
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoria", request.getCategoryId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
 
         Store store = storeRepository.findById(request.getStoreId())
-                .orElseThrow(() -> new ResourceNotFoundException("Loja", request.getStoreId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Store", request.getStoreId()));
 
         assertStoreOwnership(store);
 
         String imageUrl = (image != null && !image.isEmpty()) ? storageService.uploadFile(image) : null;
 
+        Material material = request.getMaterialId() != null
+                ? materialRepository.findById(request.getMaterialId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Material", request.getMaterialId()))
+                : null;
+
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setMaterial(request.getMaterial());
-        product.setMulticolor(Boolean.TRUE.equals(request.getMulticolor()));
+        product.setMaterial(material);
         product.setDimensions(request.getDimensions());
         product.setPrice(request.getPrice());
         product.setImageUrl(imageUrl);
@@ -83,16 +95,18 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
-        if (request.getMaterial() != null) product.setMaterial(request.getMaterial());
-        if (request.getMulticolor() != null) product.setMulticolor(Boolean.TRUE.equals(request.getMulticolor()));
         if (request.getDimensions() != null) product.setDimensions(request.getDimensions());
         if (request.getIsVisible() != null) product.setIsVisible(request.getIsVisible());
         if (request.getFeatured() != null) applyFeatured(product, request.getFeatured());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
 
+        if (request.getMaterialId() != null) {
+            product.setMaterial(materialRepository.findById(request.getMaterialId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Material", request.getMaterialId())));
+        }
         if (request.getCategoryId() != null) {
             product.setCategory(categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoria", request.getCategoryId())));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId())));
         }
         if (image != null && !image.isEmpty()) {
             product.setImageUrl(storageService.uploadFile(image));
@@ -140,9 +154,39 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<Product> search(UUID storeId, ProductFilter filter, int page, int size) {
+        Specification<Product> spec = ProductSpec.fromStore(storeId)
+                .and(ProductSpec.isVisible())
+                .and(filter.getKeyword() != null ? ProductSpec.nameContains(filter.getKeyword()) : null)
+                .and(filter.getCategoryId() != null ? ProductSpec.hasCategory(filter.getCategoryId()) : null)
+                .and(filter.getMaterialId() != null ? ProductSpec.hasMaterial(filter.getMaterialId()) : null)
+                .and(filter.getMinPrice() != null ? ProductSpec.minPrice(filter.getMinPrice()) : null)
+                .and(filter.getMaxPrice() != null ? ProductSpec.maxPrice(filter.getMaxPrice()) : null);
+
+        return productRepository.findAll(spec,
+                PageRequest.of(page, size, Sort.by("featured").descending().and(Sort.by("id").descending())));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Product findById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Produto", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+    }
+
+    @Override
+    public void reorder(List<Long> productIds) {
+        Store current = getCurrentStore();
+        for (int i = 0; i < productIds.size(); i++) {
+            Long productId = productIds.get(i);
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+            if (!product.getStore().getId().equals(current.getId())) {
+                throw new AccessDeniedException("Product " + product.getId() + " does not belong to your store.");
+            }
+            product.setSortOrder(i);
+            productRepository.save(product);
+        }
     }
 
     @Override

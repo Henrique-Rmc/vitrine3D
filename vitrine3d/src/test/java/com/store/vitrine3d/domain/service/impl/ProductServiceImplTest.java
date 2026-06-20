@@ -5,6 +5,7 @@ import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.WhatsappClick;
 import com.store.vitrine3d.domain.repository.CategoryRepository;
+import com.store.vitrine3d.domain.repository.MaterialRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
@@ -39,6 +40,7 @@ class ProductServiceImplTest {
 
     @Mock private ProductRepository productRepository;
     @Mock private CategoryRepository categoryRepository;
+    @Mock private MaterialRepository materialRepository;
     @Mock private StoreRepository storeRepository;
     @Mock private StorageService storageService;
     @Mock private WhatsappClickRepository whatsappClickRepository;
@@ -341,7 +343,6 @@ class ProductServiceImplTest {
     private ProductCreateRequest buildCreateRequest() {
         ProductCreateRequest req = new ProductCreateRequest();
         req.setName("Goku SSJ");
-        req.setMulticolor(false);
         req.setCategoryId(1L);
         req.setStoreId(STORE_ID);
         return req;
@@ -351,7 +352,6 @@ class ProductServiceImplTest {
         Product p = new Product();
         p.setId(1L);
         p.setName("Goku SSJ");
-        p.setMulticolor(false);
         p.setIsVisible(true);
         p.setFeatured(false);
         p.setPrice(price);

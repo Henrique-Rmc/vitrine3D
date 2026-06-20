@@ -20,17 +20,13 @@ public class ProductCreateRequest {
     @Size(max = 2000, message = "Description must not exceed 2000 characters")
     private String description;
 
-    @Size(max = 100, message = "Material must not exceed 100 characters")
-    private String material;
-
-    @NotNull(message = "Multicolor field is required")
-    private Boolean multicolor;
-
     @Size(max = 100, message = "Dimensions must not exceed 100 characters")
     private String dimensions;
 
     @NotNull(message = "Category is required")
     private Long categoryId;
+
+    private Long materialId;
 
     @NotNull(message = "Store is required")
     private UUID storeId;

@@ -2,6 +2,7 @@ package com.store.vitrine3d.domain.service;
 
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
+import com.store.vitrine3d.rest.dto.ProductFilter;
 import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,8 +18,10 @@ public interface ProductService {
     Page<Product> findByStoreId(UUID storeId, int page, int size);
     Page<Product> findVisibleByStoreId(UUID storeId, int page, int size);
     List<Product> findFeaturedByStoreId(UUID storeId);
+    Page<Product> search(UUID storeId, ProductFilter filter, int page, int size);
     Product findById(Long id);
     void delete(Long id);
+    void reorder(List<Long> productIds);
     long registerWhatsappClick(Long productId);
     long getClickCount(Long productId);
 }
