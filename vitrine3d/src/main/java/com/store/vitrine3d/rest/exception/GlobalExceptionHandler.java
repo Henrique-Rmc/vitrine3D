@@ -17,6 +17,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -153,8 +154,25 @@ public class GlobalExceptionHandler {
     }
 
     // -------------------------------------------------------------------------
+    // 413 — Payload Too Large
+    // -------------------------------------------------------------------------
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE,
+                ErrorResponse.of(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE",
+                        "Image size exceeds the maximum allowed limit of 2MB"));
+    }
+
+    // -------------------------------------------------------------------------
     // 422 — Business Rule Violation
     // -------------------------------------------------------------------------
+
+    @ExceptionHandler(InvalidImageFormatException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidImageFormat(InvalidImageFormatException ex) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY,
+                ErrorResponse.of(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_IMAGE_FORMAT", ex.getMessage()));
+    }
 
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException ex) {

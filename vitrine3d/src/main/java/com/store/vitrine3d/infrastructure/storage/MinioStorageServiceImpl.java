@@ -1,5 +1,6 @@
 package com.store.vitrine3d.infrastructure.storage;
 
+import com.store.vitrine3d.rest.exception.InvalidImageFormatException;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
@@ -20,16 +21,14 @@ public class MinioStorageServiceImpl implements StorageService {
 
     private static final Logger log = LoggerFactory.getLogger(MinioStorageServiceImpl.class);
 
-    private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // 10 MB
+    private static final long MAX_FILE_SIZE = 2L * 1024 * 1024; // 2 MB (second line of defense)
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/webp", "image/gif"
+            "image/webp", "image/jpeg", "image/png"
     );
 
-    // Magic bytes de cada formato permitido
     private static final byte[] MAGIC_JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
     private static final byte[] MAGIC_PNG  = {(byte) 0x89, 0x50, 0x4E, 0x47};
-    private static final byte[] MAGIC_GIF  = {0x47, 0x49, 0x46, 0x38};
-    private static final byte[] MAGIC_RIFF = {0x52, 0x49, 0x46, 0x46}; // WebP começa com RIFF
+    private static final byte[] MAGIC_RIFF = {0x52, 0x49, 0x46, 0x46}; // WebP: RIFF....WEBP
 
     private final MinioProperties props;
     private MinioClient client;
@@ -66,7 +65,7 @@ public class MinioStorageServiceImpl implements StorageService {
 
     @Override
     public String uploadFile(MultipartFile file) {
-        validateImageFile(file);
+        validateImageSecurity(file);
 
         try {
             String objectName = UUID.randomUUID() + "_" + sanitizeFilename(file.getOriginalFilename());
@@ -92,24 +91,23 @@ public class MinioStorageServiceImpl implements StorageService {
     // Validation
     // -------------------------------------------------------------------------
 
-    private void validateImageFile(MultipartFile file) {
+    public void validateImageSecurity(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("O arquivo não pode estar vazio");
+            throw new InvalidImageFormatException("Image file must not be empty");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException(
-                    "O arquivo excede o tamanho máximo permitido de 10MB");
+            throw new InvalidImageFormatException(
+                    "Image size exceeds the maximum allowed limit of 2MB");
         }
 
         String declaredType = file.getContentType();
         if (declaredType == null || !ALLOWED_MIME_TYPES.contains(declaredType.toLowerCase())) {
-            throw new IllegalArgumentException(
-                    "Tipo de arquivo não permitido. Formatos aceitos: JPEG, PNG, WebP, GIF");
+            throw new InvalidImageFormatException(
+                    "Invalid image format. Allowed types: image/webp, image/jpeg, image/png");
         }
 
-        // Lê apenas os primeiros 12 bytes para verificar os magic bytes reais
-        // independente do Content-Type declarado pelo cliente
+        // Read first 12 bytes to verify actual magic bytes regardless of declared Content-Type
         try {
             byte[] header = new byte[12];
             int read;
@@ -117,18 +115,17 @@ public class MinioStorageServiceImpl implements StorageService {
                 read = is.read(header, 0, header.length);
             }
             if (read < 4 || !isValidImageHeader(header)) {
-                throw new IllegalArgumentException(
-                        "O conteúdo do arquivo não corresponde a uma imagem válida");
+                throw new InvalidImageFormatException(
+                        "File content does not match a valid image signature");
             }
         } catch (IOException e) {
-            throw new RuntimeException("Não foi possível ler o arquivo enviado", e);
+            throw new RuntimeException("Could not read the uploaded file", e);
         }
     }
 
     private boolean isValidImageHeader(byte[] h) {
         if (startsWith(h, MAGIC_JPEG)) return true;
         if (startsWith(h, MAGIC_PNG))  return true;
-        if (startsWith(h, MAGIC_GIF))  return true;
         // WebP: bytes 0-3 = RIFF, bytes 8-11 = WEBP
         if (h.length >= 12 && startsWith(h, MAGIC_RIFF)) {
             return h[8] == 0x57 && h[9] == 0x45 && h[10] == 0x42 && h[11] == 0x50;
