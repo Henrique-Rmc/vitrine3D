@@ -29,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -177,16 +179,25 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void reorder(List<Long> productIds) {
         Store current = getCurrentStore();
-        for (int i = 0; i < productIds.size(); i++) {
-            Long productId = productIds.get(i);
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
-            if (!product.getStore().getId().equals(current.getId())) {
-                throw new AccessDeniedException("Product " + product.getId() + " does not belong to your store.");
-            }
-            product.setSortOrder(i);
-            productRepository.save(product);
+
+        List<Product> storeProducts = productRepository.findByStoreId(current.getId());
+        if (productIds.size() != storeProducts.size()) {
+            throw new BusinessRuleException("REORDER_INCOMPLETE",
+                    "The list must contain all " + storeProducts.size() + " products of the store.");
         }
+
+        Set<Long> storeProductIds = storeProducts.stream()
+                .map(Product::getId)
+                .collect(Collectors.toSet());
+
+        for (Long id : productIds) {
+            if (!storeProductIds.contains(id)) {
+                throw new AccessDeniedException("Product " + id + " does not belong to your store.");
+            }
+        }
+
+        String idsArray = "{" + productIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + "}";
+        productRepository.bulkUpdateSortOrder(idsArray, current.getId().toString());
     }
 
     @Override
