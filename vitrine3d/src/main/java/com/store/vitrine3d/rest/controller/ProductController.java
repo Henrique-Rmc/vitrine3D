@@ -1,15 +1,12 @@
 package com.store.vitrine3d.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.store.vitrine3d.domain.service.MakerWorldScraperService;
 import com.store.vitrine3d.domain.service.ProductService;
-import com.store.vitrine3d.rest.dto.MakerWorldScrapedDataDTO;
 import com.store.vitrine3d.rest.dto.PageResponse;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
 import com.store.vitrine3d.rest.dto.ProductFilter;
 import com.store.vitrine3d.rest.dto.ProductResponse;
 import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
-import com.store.vitrine3d.rest.dto.ScrapeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -36,16 +33,13 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
-    private final MakerWorldScraperService scraperService;
     private final ObjectMapper objectMapper;
     private final Validator validator;
 
     public ProductController(ProductService productService,
-                             MakerWorldScraperService scraperService,
                              ObjectMapper objectMapper,
                              Validator validator) {
         this.productService = productService;
-        this.scraperService = scraperService;
         this.objectMapper = objectMapper;
         this.validator = validator;
     }
@@ -94,12 +88,6 @@ public class ProductController {
     @PostMapping("/{id}/whatsapp-click")
     public ResponseEntity<Long> registerWhatsappClick(@PathVariable Long id) {
         return ResponseEntity.ok(productService.registerWhatsappClick(id));
-    }
-
-    @Operation(summary = "Faz scraping de uma URL do MakerWorld e retorna dados do modelo")
-    @PostMapping("/scrape")
-    public ResponseEntity<MakerWorldScrapedDataDTO> scrape(@Valid @RequestBody ScrapeRequest request) {
-        return ResponseEntity.ok(scraperService.scrape(request.getUrl()));
     }
 
     @Operation(summary = "Lista produtos visíveis de uma loja — vitrine pública (paginado, 15/página)")

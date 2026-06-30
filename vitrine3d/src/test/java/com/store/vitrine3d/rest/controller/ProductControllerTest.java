@@ -5,7 +5,6 @@ import com.store.vitrine3d.domain.model.Category;
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.repository.StoreRepository;
-import com.store.vitrine3d.domain.service.MakerWorldScraperService;
 import com.store.vitrine3d.domain.service.ProductService;
 import com.store.vitrine3d.infrastructure.security.JwtTokenProvider;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
@@ -43,7 +42,6 @@ class ProductControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private ProductService productService;
-    @MockitoBean private MakerWorldScraperService scraperService;
     @MockitoBean private StoreRepository storeRepository;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
 

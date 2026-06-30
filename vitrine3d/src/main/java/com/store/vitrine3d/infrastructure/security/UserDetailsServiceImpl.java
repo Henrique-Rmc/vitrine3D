@@ -28,6 +28,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return new User(
                 store.getEmail(),
                 store.getPassword(),
+                Boolean.TRUE.equals(store.getIsActive()), // enabled → isEnabled()
+                true,                                      // accountNonExpired
+                true,                                      // credentialsNonExpired
+                true,                                      // accountNonLocked
                 List.of(new SimpleGrantedAuthority("ROLE_STORE_OWNER"))
         );
     }

@@ -89,6 +89,12 @@ public class GlobalExceptionHandler {
                 ErrorResponse.of(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid email or password"));
     }
 
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        return build(HttpStatus.UNAUTHORIZED,
+                ErrorResponse.of(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", ex.getMessage()));
+    }
+
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ErrorResponse> handleDisabled(DisabledException ex) {
         return build(HttpStatus.UNAUTHORIZED,

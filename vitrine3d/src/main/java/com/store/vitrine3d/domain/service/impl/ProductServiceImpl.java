@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class ProductServiceImpl implements ProductService {
 
-    private static final int MAX_FEATURED = 3;
+    private static final int MAX_FEATURED = 5;
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -144,14 +144,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<Product> findVisibleByStoreId(UUID storeId, int page, int size) {
-        return productRepository.findByStoreIdAndIsVisibleTrue(storeId,
+        return productRepository.findByStoreIdAndIsVisibleTrueAndStoreIsActiveTrue(storeId,
                 PageRequest.of(page, size, Sort.by("featured").descending().and(Sort.by("id").descending())));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Product> findFeaturedByStoreId(UUID storeId) {
-        return productRepository.findByStoreIdAndFeaturedTrue(storeId);
+        return productRepository.findByStoreIdAndFeaturedTrueAndStoreIsActiveTrue(storeId);
     }
 
     @Override
@@ -159,6 +159,7 @@ public class ProductServiceImpl implements ProductService {
     public Page<Product> search(UUID storeId, ProductFilter filter, int page, int size) {
         Specification<Product> spec = ProductSpec.fromStore(storeId)
                 .and(ProductSpec.isVisible())
+                .and(ProductSpec.storeIsActive())
                 .and(filter.getKeyword() != null ? ProductSpec.nameContains(filter.getKeyword()) : null)
                 .and(filter.getCategoryId() != null ? ProductSpec.hasCategory(filter.getCategoryId()) : null)
                 .and(filter.getMaterialId() != null ? ProductSpec.hasMaterial(filter.getMaterialId()) : null)

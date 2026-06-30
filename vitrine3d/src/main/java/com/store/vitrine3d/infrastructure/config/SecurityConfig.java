@@ -29,6 +29,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Autenticação
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                 // Cadastro público
                 .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
                 // Perfis públicos de loja — apenas um nível de path para não expor rotas futuras

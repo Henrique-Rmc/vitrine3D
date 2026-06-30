@@ -14,8 +14,8 @@ import java.util.UUID;
 
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
     Page<Product> findByStoreId(UUID storeId, Pageable pageable);
-    Page<Product> findByStoreIdAndIsVisibleTrue(UUID storeId, Pageable pageable);
-    List<Product> findByStoreIdAndFeaturedTrue(UUID storeId);
+    Page<Product> findByStoreIdAndIsVisibleTrueAndStoreIsActiveTrue(UUID storeId, Pageable pageable);
+    List<Product> findByStoreIdAndFeaturedTrueAndStoreIsActiveTrue(UUID storeId);
     List<Product> findByStoreId(UUID storeId);
     long countByStoreIdAndFeaturedTrue(UUID storeId);
 

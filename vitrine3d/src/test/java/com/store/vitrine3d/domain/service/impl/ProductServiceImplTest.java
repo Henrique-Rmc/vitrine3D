@@ -216,11 +216,11 @@ class ProductServiceImplTest {
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
-        when(productRepository.countByStoreIdAndFeaturedTrue(STORE_ID)).thenReturn(3L);
+        when(productRepository.countByStoreIdAndFeaturedTrue(STORE_ID)).thenReturn(5L);
 
         assertThatThrownBy(() -> productService.toggleFeatured(1L))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("3");
+                .hasMessageContaining("5");
         verify(productRepository, never()).save(any());
     }
 
