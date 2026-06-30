@@ -122,9 +122,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Optional<Store> findBySlug(String slug) {
-        Optional<Store> current = storeRepository.findBySlug(slug);
+        Optional<Store> current = storeRepository.findBySlugAndIsActiveTrue(slug);
         if (current.isPresent()) return current;
-        return slugHistoryRepository.findBySlug(slug).map(StoreSlugHistory::getStore);
+        return slugHistoryRepository.findBySlugAndStoreIsActiveTrue(slug).map(StoreSlugHistory::getStore);
     }
 
     private String generateUniqueSlug(String storeName) {

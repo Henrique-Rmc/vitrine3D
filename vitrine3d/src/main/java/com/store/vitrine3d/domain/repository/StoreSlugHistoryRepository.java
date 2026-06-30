@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface StoreSlugHistoryRepository extends JpaRepository<StoreSlugHistory, Long> {
     Optional<StoreSlugHistory> findBySlug(String slug);
+    Optional<StoreSlugHistory> findBySlugAndStoreIsActiveTrue(String slug);
     boolean existsBySlug(String slug);
 }

@@ -18,6 +18,10 @@ public final class ProductSpec {
         return (root, query, cb) -> cb.isTrue(root.get("isVisible"));
     }
 
+    public static Specification<Product> storeIsActive() {
+        return (root, query, cb) -> cb.isTrue(root.get("store").get("isActive"));
+    }
+
     public static Specification<Product> isFeatured() {
         return (root, query, cb) -> cb.isTrue(root.get("featured"));
     }

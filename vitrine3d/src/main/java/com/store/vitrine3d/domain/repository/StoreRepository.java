@@ -9,6 +9,7 @@ import java.util.UUID;
 public interface StoreRepository extends JpaRepository<Store, UUID> {
     Optional<Store> findByEmail(String email);
     Optional<Store> findBySlug(String slug);
+    Optional<Store> findBySlugAndIsActiveTrue(String slug);
     boolean existsByEmail(String email);
     boolean existsBySlug(String slug);
 }

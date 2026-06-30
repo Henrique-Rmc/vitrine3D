@@ -15,10 +15,13 @@ public class CorsConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         // Em produção, substitua por origens específicas: List.of("https://seu-dominio.com")
+        // Em produção, substitua por origens específicas: List.of("https://seu-dominio.com")
+        // allowedOriginPatterns suporta "*" mesmo com allowCredentials=true (diferente de allowedOrigins)
         config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
