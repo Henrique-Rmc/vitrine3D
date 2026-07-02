@@ -36,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "app.rate-limit.enabled=false"
 })
 class ProductCreationIntegrationTest {
 
@@ -85,7 +86,7 @@ class ProductCreationIntegrationTest {
                 .andReturn();
 
         jwtToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .get("token").asText();
+                .get("accessToken").asText();
 
         // 3 — captura uma categoria seedada pelo DataInitializer
         categoryId = categoryRepository.findAll().get(0).getId();

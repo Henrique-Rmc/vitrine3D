@@ -1,0 +1,57 @@
+[
+  {
+    "name": "io.minio.BucketExistsArgs",
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "io.minio.PutObjectArgs",
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "io.minio.SetBucketPolicyArgs",
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "io.minio.messages.LocationConstraint",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "org.simpleframework.xml.core.TextLabel",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "org.simpleframework.xml.core.Contact",
+          "org.simpleframework.xml.Text",
+          "org.simpleframework.xml.stream.Format"
+        ]
+      }
+    ]
+  }
+]

@@ -6,6 +6,7 @@ import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@ImportRuntimeHints(MinioArgsRuntimeHints.class)
 public class MinioStorageServiceImpl implements StorageService {
 
     private static final Logger log = LoggerFactory.getLogger(MinioStorageServiceImpl.class);
@@ -42,6 +44,7 @@ public class MinioStorageServiceImpl implements StorageService {
         client = MinioClient.builder()
                 .endpoint(props.getEndpoint())
                 .credentials(props.getAccessKey(), props.getSecretKey())
+                .region(props.getRegion())
                 .build();
 
         boolean exists = client.bucketExists(BucketExistsArgs.builder().bucket(props.getBucketName()).build());
@@ -50,17 +53,24 @@ public class MinioStorageServiceImpl implements StorageService {
             log.info("MinIO bucket '{}' created", props.getBucketName());
         }
 
+        // Provedores S3-compatible como o Cloudflare R2 não implementam PutBucketPolicy —
+        // nesses casos o acesso público precisa ser configurado no próprio provedor
+        // (ex.: R2.dev / custom domain no dashboard da Cloudflare). Não travamos o boot por isso.
         String publicReadPolicy = """
                 {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}
                 """.formatted(props.getBucketName()).strip();
+        try {
+            client.setBucketPolicy(SetBucketPolicyArgs.builder()
+                    .bucket(props.getBucketName())
+                    .config(publicReadPolicy)
+                    .build());
+            log.info("MinIO bucket '{}' public-read policy applied.", props.getBucketName());
+        } catch (MinioException e) {
+            log.warn("Provedor não suporta PutBucketPolicy — configure acesso público ao bucket '{}' "
+                    + "manualmente no painel do provedor. Causa: {}", props.getBucketName(), e.getMessage());
+        }
 
-        client.setBucketPolicy(SetBucketPolicyArgs.builder()
-                .bucket(props.getBucketName())
-                .config(publicReadPolicy)
-                .build());
-
-        log.info("MinIO bucket '{}' public-read policy applied. Public URL base: {}/{}",
-                props.getBucketName(), props.getPublicEndpoint(), props.getBucketName());
+        log.info("Public URL base: {}", props.getPublicEndpoint());
     }
 
     @Override
@@ -77,7 +87,10 @@ public class MinioStorageServiceImpl implements StorageService {
                     .contentType(resolvedMimeType(file))
                     .build());
 
-            String url = props.getPublicEndpoint() + "/" + props.getBucketName() + "/" + objectName;
+            // A URL pública NÃO inclui o nome do bucket no path — cada provedor tem sua
+            // convenção (MinIO/S3: inclua o bucket no valor de MINIO_PUBLIC_ENDPOINT;
+            // R2.dev / custom domain: já mapeiam direto pra raiz do bucket).
+            String url = props.getPublicEndpoint() + "/" + objectName;
             log.debug("File uploaded: {}", url);
             return url;
 

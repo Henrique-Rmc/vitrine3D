@@ -1,0 +1,75 @@
+# Build de imagem nativa (GraalVM). Alternativa ao Dockerfile padrão (JVM):
+# menor footprint de memória e startup quase instantâneo, em troca de um build bem mais
+# pesado/lento e da necessidade de Postgres + MinIO/R2 alcançáveis DURANTE o build (ver abaixo).
+#
+# No Render: basta configurar as Environment Variables do serviço normalmente — o Render
+# repassa automaticamente as que baterem com um ARG abaixo como build arg. Não precisa
+# configurar nada separado para build vs. runtime.
+#
+# Build local:
+#   docker build -f Dockerfile.native \
+#     --network=<rede-com-postgres-e-minio-alcançáveis> \
+#     --build-arg DB_URL=jdbc:postgresql://postgres:5432/vitrine3d \
+#     --build-arg DB_USERNAME=vitrine3d \
+#     --build-arg DB_PASSWORD=vitrine3d \
+#     --build-arg MINIO_ENDPOINT=http://minio:9000 \
+#     --build-arg MINIO_ACCESS_KEY=minioadmin \
+#     --build-arg MINIO_SECRET_KEY=minioadmin \
+#     --build-arg MINIO_REGION=us-east-1 \
+#     -t vitrine3d:native .
+#
+# Esses valores são só para o Spring AOT conseguir inicializar o contexto durante o build
+# (ver comentário no final do arquivo). O estágio final (runtime) não herda o estágio de
+# build, então nenhum desses valores fica gravado nas camadas da imagem publicada — os
+# segredos de produção de verdade continuam vindo só de variáveis de ambiente em runtime.
+
+FROM ghcr.io/graalvm/native-image-community:21 AS build
+WORKDIR /app
+
+# A imagem base (Oracle Linux minimal) não traz xargs, que o script gradlew exige.
+RUN microdnf install -y findutils && microdnf clean all
+
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle .
+COPY settings.gradle .
+COPY src src
+
+RUN chmod +x gradlew
+
+ARG DB_URL
+ARG DB_USERNAME
+ARG DB_PASSWORD
+ARG MINIO_ENDPOINT
+ARG MINIO_ACCESS_KEY
+ARG MINIO_SECRET_KEY
+ARG MINIO_REGION=us-east-1
+ENV DB_URL=${DB_URL} \
+    DB_USERNAME=${DB_USERNAME} \
+    DB_PASSWORD=${DB_PASSWORD} \
+    MINIO_ENDPOINT=${MINIO_ENDPOINT} \
+    MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY} \
+    MINIO_SECRET_KEY=${MINIO_SECRET_KEY} \
+    MINIO_REGION=${MINIO_REGION}
+
+RUN ./gradlew nativeCompile --no-daemon
+
+FROM debian:bookworm-slim
+WORKDIR /app
+
+# O binário nativo é dinamicamente linkado contra zlib (java.util.zip) e precisa de
+# certificados CA para TLS de saída (Postgres/MinIO com SSL, chamadas HTTPS externas).
+RUN apt-get update && apt-get install -y --no-install-recommends zlib1g ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/build/native/nativeCompile/vitrine3d app
+
+EXPOSE 8080
+ENTRYPOINT ["/app/app"]
+
+# Por que o build precisa de Postgres/MinIO alcançáveis:
+# o Spring AOT (processAot, do qual nativeCompile depende) sobe o ApplicationContext de
+# verdade durante o build para gravar os hints de reflexão do GraalVM. Isso instancia o
+# HikariDataSource (que valida uma conexão real por padrão) e o MinioStorageServiceImpl,
+# cujo @PostConstruct chama client.bucketExists(...) — uma chamada de rede de verdade.
+# Sem esses dois serviços acessíveis, "nativeCompile" falha antes de chegar a compilar.
