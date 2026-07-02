@@ -35,3 +35,17 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Segredos / configuração local ###
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+
+### Claude Code (config pessoal, não o projeto) ###
+.claude/settings.local.json
+
+### OS ###
+.DS_Store
+Thumbs.db

@@ -12,9 +12,13 @@ public class MinioProperties {
     private String accessKey;
     private String secretKey;
     private String bucketName;
+    private String region;
 
     public String getEndpoint() { return endpoint; }
     public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+
+    public String getRegion() { return region; }
+    public void setRegion(String region) { this.region = region; }
 
     public String getPublicEndpoint() { return publicEndpoint != null ? publicEndpoint : endpoint; }
     public void setPublicEndpoint(String publicEndpoint) { this.publicEndpoint = publicEndpoint; }

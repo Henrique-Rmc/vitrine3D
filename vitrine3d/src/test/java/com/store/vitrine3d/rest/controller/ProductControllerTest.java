@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ProductController.class)
 @Import(GlobalExceptionHandler.class)
 @WithMockUser
+@org.springframework.test.context.TestPropertySource(properties = "app.rate-limit.enabled=false")
 class ProductControllerTest {
 
     private static final UUID STORE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");

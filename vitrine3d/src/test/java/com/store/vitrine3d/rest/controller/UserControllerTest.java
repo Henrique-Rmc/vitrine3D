@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(UserController.class)
 @Import(GlobalExceptionHandler.class)
 @WithMockUser
+@org.springframework.test.context.TestPropertySource(properties = "app.rate-limit.enabled=false")
 class UserControllerTest {
 
     @Autowired
