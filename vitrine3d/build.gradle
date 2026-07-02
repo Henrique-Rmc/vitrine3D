@@ -62,6 +62,12 @@ graalvmNative {
 			// Sockets/TLS para Postgres, MinIO e Redis; stack traces reais em vez de "Fatal error" opaco.
 			buildArgs.add('--enable-url-protocols=http,https')
 			buildArgs.add('-H:+ReportExceptionStackTraces')
+			// Ambientes de build com pouca RAM (ex.: Render free, teto de 8GB) — modo de
+			// build rápido reduz drasticamente o pico de memória (troca por um binário
+			// menos otimizado em runtime, aceitável para MVP) e limita o heap do builder
+			// explicitamente para não estourar o container.
+			buildArgs.add('-Ob')
+			buildArgs.add('-J-Xmx6g')
 		}
 	}
 }
