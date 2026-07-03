@@ -9,12 +9,12 @@ import com.store.vitrine3d.domain.repository.MaterialRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
+import com.store.vitrine3d.domain.service.CurrentStoreResolver;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
 import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
 import com.store.vitrine3d.rest.exception.BusinessRuleException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +23,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,6 +41,7 @@ class ProductServiceImplTest {
     @Mock private StoreRepository storeRepository;
     @Mock private StorageService storageService;
     @Mock private WhatsappClickRepository whatsappClickRepository;
+    @Mock private CurrentStoreResolver currentStoreResolver;
 
     @InjectMocks private ProductServiceImpl productService;
 
@@ -63,13 +61,6 @@ class ProductServiceImplTest {
         category = new Category();
         category.setId(1L);
         category.setName("Animes");
-
-        authenticateAs(OWNER_EMAIL);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
     }
 
     // -------------------------------------------------------------------------
@@ -83,7 +74,7 @@ class ProductServiceImplTest {
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, null);
@@ -97,7 +88,7 @@ class ProductServiceImplTest {
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, null);
@@ -115,7 +106,7 @@ class ProductServiceImplTest {
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(otherStore.getId())).thenReturn(Optional.of(otherStore));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
 
         assertThatThrownBy(() -> productService.save(request, null))
                 .isInstanceOf(AccessDeniedException.class);
@@ -130,7 +121,7 @@ class ProductServiceImplTest {
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(storageService.uploadFile(image)).thenReturn("http://minio/test.png");
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -148,7 +139,7 @@ class ProductServiceImplTest {
         Product existing = buildProduct(new BigDecimal("20.00"));
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProductUpdateRequest request = new ProductUpdateRequest();
@@ -164,7 +155,7 @@ class ProductServiceImplTest {
         Product existing = buildProduct(new BigDecimal("20.00"));
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProductUpdateRequest request = new ProductUpdateRequest();
@@ -183,7 +174,7 @@ class ProductServiceImplTest {
         product.setStore(otherStore);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
 
         assertThatThrownBy(() -> productService.update(1L, new ProductUpdateRequest(), null))
                 .isInstanceOf(AccessDeniedException.class);
@@ -200,7 +191,7 @@ class ProductServiceImplTest {
         product.setFeatured(false);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.countByStoreIdAndFeaturedTrue(STORE_ID)).thenReturn(1L);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -215,7 +206,7 @@ class ProductServiceImplTest {
         product.setFeatured(false);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.countByStoreIdAndFeaturedTrue(STORE_ID)).thenReturn(5L);
 
         assertThatThrownBy(() -> productService.toggleFeatured(1L))
@@ -230,7 +221,7 @@ class ProductServiceImplTest {
         product.setFeatured(true);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.toggleFeatured(1L);
@@ -249,7 +240,7 @@ class ProductServiceImplTest {
         product.setIsVisible(true);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.toggleVisibility(1L);
@@ -263,7 +254,7 @@ class ProductServiceImplTest {
         product.setIsVisible(false);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.toggleVisibility(1L);
@@ -280,7 +271,7 @@ class ProductServiceImplTest {
         Product product = buildProduct(null);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
 
         productService.delete(1L);
 
@@ -296,7 +287,7 @@ class ProductServiceImplTest {
         product.setStore(other);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(storeRepository.findByEmail(OWNER_EMAIL)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
 
         assertThatThrownBy(() -> productService.delete(1L))
                 .isInstanceOf(AccessDeniedException.class);
@@ -358,10 +349,5 @@ class ProductServiceImplTest {
         p.setCategory(category);
         p.setStore(ownerStore);
         return p;
-    }
-
-    private void authenticateAs(String email) {
-        var auth = new UsernamePasswordAuthenticationToken(email, null, List.of());
-        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 }

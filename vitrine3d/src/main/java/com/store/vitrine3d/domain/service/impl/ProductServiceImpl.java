@@ -10,6 +10,7 @@ import com.store.vitrine3d.domain.repository.MaterialRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
+import com.store.vitrine3d.domain.service.CurrentStoreResolver;
 import com.store.vitrine3d.domain.service.ProductService;
 import com.store.vitrine3d.domain.specification.ProductSpec;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
@@ -23,7 +24,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,19 +45,22 @@ public class ProductServiceImpl implements ProductService {
     private final StoreRepository storeRepository;
     private final StorageService storageService;
     private final WhatsappClickRepository whatsappClickRepository;
+    private final CurrentStoreResolver currentStoreResolver;
 
     public ProductServiceImpl(ProductRepository productRepository,
                                CategoryRepository categoryRepository,
                                MaterialRepository materialRepository,
                                StoreRepository storeRepository,
                                StorageService storageService,
-                               WhatsappClickRepository whatsappClickRepository) {
+                               WhatsappClickRepository whatsappClickRepository,
+                               CurrentStoreResolver currentStoreResolver) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.materialRepository = materialRepository;
         this.storeRepository = storeRepository;
         this.storageService = storageService;
         this.whatsappClickRepository = whatsappClickRepository;
+        this.currentStoreResolver = currentStoreResolver;
     }
 
     @Override
@@ -179,7 +182,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void reorder(List<Long> productIds) {
-        Store current = getCurrentStore();
+        Store current = currentStoreResolver.getCurrentStore();
 
         List<Product> storeProducts = productRepository.findByStoreId(current.getId());
         if (productIds.size() != storeProducts.size()) {
@@ -221,28 +224,22 @@ public class ProductServiceImpl implements ProductService {
         return whatsappClickRepository.countByProductId(productId);
     }
 
-    private Store getCurrentStore() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return storeRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Store not found after authentication"));
-    }
-
     private void assertStoreOwnership(Store store) {
-        Store current = getCurrentStore();
+        Store current = currentStoreResolver.getCurrentStore();
         if (!store.getId().equals(current.getId())) {
             throw new AccessDeniedException("You do not have permission to access this store.");
         }
     }
 
     private void assertStoreOwnership(UUID storeId) {
-        Store current = getCurrentStore();
+        Store current = currentStoreResolver.getCurrentStore();
         if (!storeId.equals(current.getId())) {
             throw new AccessDeniedException("You do not have permission to access this store.");
         }
     }
 
     private void assertProductOwnership(Product product) {
-        Store current = getCurrentStore();
+        Store current = currentStoreResolver.getCurrentStore();
         if (!product.getStore().getId().equals(current.getId())) {
             throw new AccessDeniedException("You do not have permission to modify this product.");
         }
