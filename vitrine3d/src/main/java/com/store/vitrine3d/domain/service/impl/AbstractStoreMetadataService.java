@@ -3,11 +3,10 @@ package com.store.vitrine3d.domain.service.impl;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.StoreMetadata;
 import com.store.vitrine3d.domain.repository.StoreMetadataRepository;
-import com.store.vitrine3d.domain.repository.StoreRepository;
+import com.store.vitrine3d.domain.service.CurrentStoreResolver;
 import com.store.vitrine3d.domain.service.StoreMetadataService;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -18,12 +17,12 @@ public abstract class AbstractStoreMetadataService<T extends StoreMetadata>
         implements StoreMetadataService<T> {
 
     private final StoreMetadataRepository<T> repository;
-    private final StoreRepository storeRepository;
+    private final CurrentStoreResolver currentStoreResolver;
 
     protected AbstractStoreMetadataService(StoreMetadataRepository<T> repository,
-                                           StoreRepository storeRepository) {
+                                           CurrentStoreResolver currentStoreResolver) {
         this.repository = repository;
-        this.storeRepository = storeRepository;
+        this.currentStoreResolver = currentStoreResolver;
     }
 
     // --- Template Method: subclasses define the entity type ---
@@ -55,7 +54,7 @@ public abstract class AbstractStoreMetadataService<T extends StoreMetadata>
 
     @Override
     public T create(String name) {
-        Store store = getCurrentStore();
+        Store store = currentStoreResolver.getCurrentStore();
         T entity = newInstance();
         entity.setName(name);
         entity.setIsGlobal(false);
@@ -80,17 +79,11 @@ public abstract class AbstractStoreMetadataService<T extends StoreMetadata>
 
     // --- Shared helpers ---
 
-    private Store getCurrentStore() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return storeRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Store not found after authentication"));
-    }
-
     private void assertOwnership(T entity) {
         if (Boolean.TRUE.equals(entity.getIsGlobal())) {
             throw new AccessDeniedException("Global " + resourceName().toLowerCase() + "s cannot be modified.");
         }
-        Store current = getCurrentStore();
+        Store current = currentStoreResolver.getCurrentStore();
         if (entity.getStore() == null || !entity.getStore().getId().equals(current.getId())) {
             throw new AccessDeniedException(
                     "You do not have permission to modify this " + resourceName().toLowerCase() + ".");
