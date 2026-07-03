@@ -62,17 +62,10 @@ graalvmNative {
 			// Sockets/TLS para Postgres, MinIO e Redis; stack traces reais em vez de "Fatal error" opaco.
 			buildArgs.add('--enable-url-protocols=http,https')
 			buildArgs.add('-H:+ReportExceptionStackTraces')
-			// Ambientes de build com pouca RAM (ex.: Render free, teto de 8GB) — modo de
-			// build rápido reduz drasticamente o pico de memória (troca por um binário
-			// menos otimizado em runtime, aceitável para MVP) e limita o heap do builder
-			// explicitamente para não estourar o container.
-			buildArgs.add('-Ob')
-			buildArgs.add('-J-Xmx6g')
-			// O cap de heap acima não cobre memória nativa/off-heap usada pelas threads de
-			// análise e compilação — a máquina de build do Render expõe 16 CPUs "visíveis"
-			// e o GraalVM paraleliza nelas, multiplicando esse custo off-heap. Reduzir o
-			// paralelismo ataca essa parte (deixa o build mais lento, mas com pico bem menor).
-			buildArgs.add('--parallelism=2')
+			// -Ob, -J-Xmx6g e --parallelism=2 foram removidos: existiam só pra caber no teto
+			// de 8GB do ambiente de build do Render. Agora o build roda na máquina local (que
+			// tem RAM de sobra) e a imagem só é publicada via docker push — sem essa restrição,
+			// builda mais rápido e com o binário totalmente otimizado.
 		}
 	}
 }
