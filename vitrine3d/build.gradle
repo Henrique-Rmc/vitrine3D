@@ -68,6 +68,11 @@ graalvmNative {
 			// explicitamente para não estourar o container.
 			buildArgs.add('-Ob')
 			buildArgs.add('-J-Xmx6g')
+			// O cap de heap acima não cobre memória nativa/off-heap usada pelas threads de
+			// análise e compilação — a máquina de build do Render expõe 16 CPUs "visíveis"
+			// e o GraalVM paraleliza nelas, multiplicando esse custo off-heap. Reduzir o
+			// paralelismo ataca essa parte (deixa o build mais lento, mas com pico bem menor).
+			buildArgs.add('--parallelism=2')
 		}
 	}
 }
