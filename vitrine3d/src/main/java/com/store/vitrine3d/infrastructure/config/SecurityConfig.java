@@ -27,6 +27,9 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Preflight CORS — sem isso, o filtro de segurança rejeita o OPTIONS antes do
+                // CORS conseguir responder (o preflight nunca carrega token/cookie).
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Autenticação
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
