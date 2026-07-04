@@ -102,7 +102,7 @@ public class RefreshTokenService {
         return ResponseCookie.from(COOKIE_NAME, rawToken)
                 .httpOnly(true)
                 .secure(props.isCookieSecure())
-                .sameSite("Strict")
+                .sameSite(props.getCookieSameSite())
                 .path(COOKIE_PATH)
                 .maxAge(Duration.ofDays(props.getExpirationDays()))
                 .build();
@@ -112,7 +112,7 @@ public class RefreshTokenService {
         return ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(props.isCookieSecure())
-                .sameSite("Strict")
+                .sameSite(props.getCookieSameSite())
                 .path(COOKIE_PATH)
                 .maxAge(0)
                 .build();
