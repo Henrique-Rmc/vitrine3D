@@ -31,6 +31,11 @@ public class ProductCreateRequest {
     @NotNull(message = "Store is required")
     private UUID storeId;
 
+    private Boolean isVisible;
+
+    @Size(max = 2048, message = "Image URL must not exceed 2048 characters")
+    private String imageUrl;
+
     @DecimalMin(value = "0.01", message = "Price must be greater than 0")
     @Digits(integer = 8, fraction = 2, message = "Invalid price format (max 8 integer digits, 2 decimal)")
     private BigDecimal price;

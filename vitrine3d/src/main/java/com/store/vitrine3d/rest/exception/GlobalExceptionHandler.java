@@ -187,6 +187,28 @@ public class GlobalExceptionHandler {
     }
 
     // -------------------------------------------------------------------------
+    // 503 — Storage / external service failure
+    // -------------------------------------------------------------------------
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleRuntime(RuntimeException ex) {
+        Throwable cause = ex.getCause();
+        if (cause != null && (
+                cause.getClass().getName().contains("minio") ||
+                cause.getClass().getName().contains("Minio") ||
+                cause.getClass().getName().contains("S3") ||
+                (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("storage"))
+        )) {
+            return build(HttpStatus.SERVICE_UNAVAILABLE,
+                    ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, "STORAGE_UNAVAILABLE",
+                            "Falha ao enviar a imagem. Verifique sua conexão e tente novamente."));
+        }
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
+                        "An unexpected error occurred. Please try again later."));
+    }
+
+    // -------------------------------------------------------------------------
     // 500 — Internal
     // -------------------------------------------------------------------------
 

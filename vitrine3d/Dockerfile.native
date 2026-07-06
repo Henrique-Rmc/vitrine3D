@@ -16,6 +16,7 @@
 #     --build-arg MINIO_ACCESS_KEY=minioadmin \
 #     --build-arg MINIO_SECRET_KEY=minioadmin \
 #     --build-arg MINIO_REGION=us-east-1 \
+#     --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
 #     -t vitrine3d:native .
 #
 # Esses valores são só para o Spring AOT conseguir inicializar o contexto durante o build
@@ -63,6 +64,12 @@ WORKDIR /app
 # certificados CA para TLS de saída (Postgres/MinIO com SSL, chamadas HTTPS externas).
 RUN apt-get update && apt-get install -y --no-install-recommends zlib1g ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Commit em execução (ver /api/version) — só precisa existir neste estágio final, já que é
+# lido em runtime, não durante o build/AOT. Passe com:
+#   --build-arg GIT_COMMIT=$(git rev-parse --short HEAD)
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
 
 COPY --from=build /app/build/native/nativeCompile/vitrine3d app
 
