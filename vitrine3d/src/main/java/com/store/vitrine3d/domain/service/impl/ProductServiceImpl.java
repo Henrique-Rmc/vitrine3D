@@ -73,7 +73,9 @@ public class ProductServiceImpl implements ProductService {
 
         assertStoreOwnership(store);
 
-        String imageUrl = (image != null && !image.isEmpty()) ? storageService.uploadFile(image) : null;
+        String imageUrl = (image != null && !image.isEmpty())
+                ? storageService.uploadFile(image)
+                : request.getImageUrl();
 
         Material material = request.getMaterialId() != null
                 ? materialRepository.findById(request.getMaterialId())
@@ -87,6 +89,7 @@ public class ProductServiceImpl implements ProductService {
         product.setDimensions(request.getDimensions());
         product.setPrice(request.getPrice());
         product.setImageUrl(imageUrl);
+        product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : Boolean.TRUE);
         product.setCategory(category);
         product.setStore(store);
 

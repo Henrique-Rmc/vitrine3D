@@ -53,8 +53,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/categories/store/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/materials").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/materials/store/**").permitAll()
-                // Health check
+                // Health check e versão em execução
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/version").permitAll()
                 // Documentação
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Tudo mais requer autenticação
