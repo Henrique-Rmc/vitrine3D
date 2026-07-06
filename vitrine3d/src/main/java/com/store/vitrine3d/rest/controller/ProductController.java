@@ -16,6 +16,10 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
+import org.springframework.aot.hint.MemberCategory;
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +31,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * ProductCreateRequest/ProductUpdateRequest são desserializados via objectMapper.readValue()
+ * manual (o corpo "data" vem como String dentro do multipart, não como @RequestBody direto) —
+ * o Spring AOT não descobre essa necessidade sozinho, mesma causa do bug que já corrigimos no
+ * DataInitializer. Sem o hint, o binário GraalVM falha com "Cannot construct instance... this
+ * appears to be a native image" assim que alguém tenta cadastrar/editar um produto.
+ */
 @Tag(name = "Produtos", description = "Gerenciamento de produtos da vitrine")
 @RestController
 @RequestMapping("/api/products")
+@ImportRuntimeHints(ProductController.ProductRequestHints.class)
 public class ProductController {
 
     private final ProductService productService;
@@ -187,5 +199,19 @@ public class ProductController {
         public ProductUpdateRequest data;
         @Schema(type = "string", format = "binary", description = "Nova imagem (opcional)")
         public org.springframework.web.multipart.MultipartFile image;
+    }
+
+    static class ProductRequestHints implements RuntimeHintsRegistrar {
+        @Override
+        public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+            hints.reflection().registerType(ProductCreateRequest.class,
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                    MemberCategory.INVOKE_DECLARED_METHODS,
+                    MemberCategory.DECLARED_FIELDS);
+            hints.reflection().registerType(ProductUpdateRequest.class,
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                    MemberCategory.INVOKE_DECLARED_METHODS,
+                    MemberCategory.DECLARED_FIELDS);
+        }
     }
 }

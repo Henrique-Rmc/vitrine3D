@@ -48,6 +48,12 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+tasks.named('bootJar') {
+	// Nosso reflect-config.json versionado (META-INF/native-image/...) colide com o gerado
+	// automaticamente por collectReachabilityMetadata — mantém o nosso.
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 hibernate {
 	enhancement {
 		enableLazyInitialization = true
