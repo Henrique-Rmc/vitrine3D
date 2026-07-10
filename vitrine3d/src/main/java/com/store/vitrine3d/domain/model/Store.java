@@ -6,7 +6,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -55,8 +57,19 @@ public class Store {
     @JoinColumn(name = "city_id")
     private City city;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "business_type_id")
+    private BusinessType businessType;
+
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
+
+    // IDs de AttributeDefinition globais que essa loja optou por nao usar/exibir.
+    // Nao afeta outras lojas; nao apaga o AttributeDefinition original.
+    @ElementCollection
+    @CollectionTable(name = "store_hidden_attributes", joinColumns = @JoinColumn(name = "store_id"))
+    @Column(name = "attribute_definition_id")
+    private Set<Long> hiddenAttributeDefinitionIds = new HashSet<>();
 
     public Store() {}
 
@@ -99,6 +112,14 @@ public class Store {
     public City getCity() { return city; }
     public void setCity(City city) { this.city = city; }
 
+    public BusinessType getBusinessType() { return businessType; }
+    public void setBusinessType(BusinessType businessType) { this.businessType = businessType; }
+
     public List<Product> getProducts() { return products; }
     public void setProducts(List<Product> products) { this.products = products; }
+
+    public Set<Long> getHiddenAttributeDefinitionIds() { return hiddenAttributeDefinitionIds; }
+    public void setHiddenAttributeDefinitionIds(Set<Long> hiddenAttributeDefinitionIds) {
+        this.hiddenAttributeDefinitionIds = hiddenAttributeDefinitionIds;
+    }
 }

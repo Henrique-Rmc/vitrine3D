@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ProductService {
-    Product save(ProductCreateRequest request, MultipartFile image);
-    Product update(Long id, ProductUpdateRequest request, MultipartFile image);
+    Product save(ProductCreateRequest request, List<MultipartFile> images);
+    Product update(Long id, ProductUpdateRequest request, List<MultipartFile> images);
     Product toggleVisibility(Long id);
     Product toggleFeatured(Long id);
     Page<Product> findByStoreId(UUID storeId, int page, int size);

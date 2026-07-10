@@ -21,4 +21,5 @@ public class StoreUpdateRequest {
 
     private Long stateId;
     private Long cityId;
+    private Long businessTypeId;
 }

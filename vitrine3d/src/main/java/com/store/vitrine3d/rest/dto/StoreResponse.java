@@ -22,6 +22,8 @@ public class StoreResponse {
     private Long cityId;
     private String cityName;
     private String slug;
+    private Long businessTypeId;
+    private String businessTypeName;
 
     // Resposta completa — para o próprio lojista autenticado
     public static StoreResponse from(Store store) {
@@ -54,6 +56,10 @@ public class StoreResponse {
         if (store.getCity() != null) {
             dto.setCityId(store.getCity().getId());
             dto.setCityName(store.getCity().getName());
+        }
+        if (store.getBusinessType() != null) {
+            dto.setBusinessTypeId(store.getBusinessType().getId());
+            dto.setBusinessTypeName(store.getBusinessType().getName());
         }
 
         return dto;

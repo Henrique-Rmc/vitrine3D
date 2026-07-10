@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @Data
 public class ProductUpdateRequest {
@@ -16,15 +17,13 @@ public class ProductUpdateRequest {
     @Size(max = 2000, message = "Description must not exceed 2000 characters")
     private String description;
 
-    @Size(max = 100, message = "Dimensions must not exceed 100 characters")
-    private String dimensions;
-
-    private Long categoryId;
-    private Long materialId;
     private Boolean isVisible;
     private Boolean featured;
 
     @DecimalMin(value = "0.01", message = "Price must be greater than 0")
     @Digits(integer = 8, fraction = 2, message = "Invalid price format (max 8 integer digits, 2 decimal)")
     private BigDecimal price;
+
+    /** Atributos dinamicos a sobrepor (merge) sobre os existentes. */
+    private Map<String, Object> attributes;
 }
