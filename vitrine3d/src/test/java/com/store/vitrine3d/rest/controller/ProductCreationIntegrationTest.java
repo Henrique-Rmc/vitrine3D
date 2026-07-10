@@ -1,7 +1,6 @@
 package com.store.vitrine3d.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.store.vitrine3d.domain.repository.CategoryRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.ProductCreateRequest;
@@ -43,7 +42,6 @@ class ProductCreationIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private CategoryRepository categoryRepository;
     @Autowired private ProductRepository productRepository;
 
     @MockitoBean
@@ -51,7 +49,6 @@ class ProductCreationIntegrationTest {
 
     private String jwtToken;
     private UUID storeId;
-    private Long categoryId;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -87,9 +84,6 @@ class ProductCreationIntegrationTest {
 
         jwtToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
                 .get("accessToken").asText();
-
-        // 3 — captura uma categoria seedada pelo DataInitializer
-        categoryId = categoryRepository.findAll().get(0).getId();
     }
 
     @Test
@@ -97,8 +91,6 @@ class ProductCreationIntegrationTest {
         ProductCreateRequest productRequest = new ProductCreateRequest();
         productRequest.setName("Goku SSJ4");
         productRequest.setDescription("Figura articulada em resina");
-        productRequest.setDimensions("25x15x12cm");
-        productRequest.setCategoryId(categoryId);
         productRequest.setStoreId(storeId);
 
         MockMultipartFile dataPart = new MockMultipartFile(
@@ -111,7 +103,6 @@ class ProductCreationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Goku SSJ4"))
                 .andExpect(jsonPath("$.isVisible").value(true))
-                .andExpect(jsonPath("$.categoryName").isNotEmpty())
                 .andExpect(jsonPath("$.storeId").value(storeId.toString()))
                 .andReturn();
 
@@ -126,7 +117,6 @@ class ProductCreationIntegrationTest {
     void whenCreateProductWithoutAuth_thenReturns401() throws Exception {
         ProductCreateRequest productRequest = new ProductCreateRequest();
         productRequest.setName("Pikachu");
-        productRequest.setCategoryId(categoryId);
         productRequest.setStoreId(storeId);
 
         MockMultipartFile dataPart = new MockMultipartFile(

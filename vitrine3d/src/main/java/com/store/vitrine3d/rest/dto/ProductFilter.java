@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -15,8 +16,14 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProductFilter {
     private String keyword;
-    private Long categoryId;
-    private Long materialId;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
+
+    /**
+     * Filtros dinamicos por atributo do tipo de negocio da loja. Chave igual ao
+     * AttributeDefinition.key para igualdade (ex.: "marca") ou com sufixo "_min"/"_max"
+     * para faixa em atributos NUMBER/DATE (ex.: "ano_min", "ano_max").
+     * Ligado via query string: attributes[marca]=Toyota&attributes[ano_min]=2020
+     */
+    private Map<String, String> attributes;
 }

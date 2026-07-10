@@ -35,4 +35,5 @@ public class StoreRegisterRequest {
 
     private Long stateId;
     private Long cityId;
+    private Long businessTypeId;
 }

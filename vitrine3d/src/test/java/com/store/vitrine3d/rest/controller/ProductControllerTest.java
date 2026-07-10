@@ -1,7 +1,6 @@
 package com.store.vitrine3d.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.store.vitrine3d.domain.model.Category;
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.repository.StoreRepository;
@@ -55,23 +54,13 @@ class ProductControllerTest {
         return store;
     }
 
-    private Category buildMockCategory() {
-        Category category = new Category();
-        category.setId(1L);
-        category.setName("Animes");
-        category.setIsGlobal(true);
-        return category;
-    }
-
     private Product buildMockProduct() {
         Product product = new Product();
         product.setId(1L);
         product.setName("Goku SSJ3");
         product.setDescription("Figura articulada em PLA");
-        product.setDimensions("20x15x10cm");
         product.setIsVisible(true);
         product.setFeatured(false);
-        product.setCategory(buildMockCategory());
         product.setStore(buildMockStore());
         return product;
     }
@@ -87,7 +76,6 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Goku SSJ3"))
-                .andExpect(jsonPath("$.content[0].categoryName").value("Animes"))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].whatsappUrl").value(
                         org.hamcrest.Matchers.containsString("wa.me/5511999999999")));
@@ -151,7 +139,6 @@ class ProductControllerTest {
     void whenCreateProductWithValidMultipart_thenReturns201() throws Exception {
         ProductCreateRequest request = new ProductCreateRequest();
         request.setName("Pikachu");
-        request.setCategoryId(1L);
         request.setStoreId(STORE_UUID);
 
         MockMultipartFile dataJson = new MockMultipartFile(

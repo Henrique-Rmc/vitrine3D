@@ -6,6 +6,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -14,18 +16,16 @@ public class ProductResponse {
     private Long id;
     private String name;
     private String description;
+    /** Conveniencia: primeira foto da lista, ou null se o produto ainda nao tem nenhuma. */
     private String imageUrl;
-    private String dimensions;
+    private List<String> imageUrls;
     private Boolean isVisible;
     private Boolean featured;
     private BigDecimal price;
-    private Long categoryId;
-    private String categoryName;
-    private Long materialId;
-    private String materialName;
     private UUID storeId;
     private String whatsappUrl;
     private long clickCount;
+    private Map<String, Object> attributes;
 
     public static ProductResponse from(Product product) {
         return from(product, 0L);
@@ -36,20 +36,15 @@ public class ProductResponse {
         dto.setId(product.getId());
         dto.setName(product.getName());
         dto.setDescription(product.getDescription());
-        dto.setImageUrl(product.getImageUrl());
-        dto.setDimensions(product.getDimensions());
+        dto.setImageUrls(product.getImageUrls());
+        dto.setImageUrl(product.getImageUrls().isEmpty() ? null : product.getImageUrls().get(0));
         dto.setIsVisible(product.getIsVisible());
         dto.setFeatured(product.getFeatured());
         dto.setPrice(product.getPrice());
-        dto.setCategoryId(product.getCategory().getId());
-        dto.setCategoryName(product.getCategory().getName());
-        if (product.getMaterial() != null) {
-            dto.setMaterialId(product.getMaterial().getId());
-            dto.setMaterialName(product.getMaterial().getName());
-        }
         dto.setStoreId(product.getStore().getId());
         dto.setWhatsappUrl(buildWhatsappUrl(product));
         dto.setClickCount(clickCount);
+        dto.setAttributes(product.getAttributes());
         return dto;
     }
 

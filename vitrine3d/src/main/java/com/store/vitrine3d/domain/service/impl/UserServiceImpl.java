@@ -2,6 +2,7 @@ package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.StoreSlugHistory;
+import com.store.vitrine3d.domain.repository.BusinessTypeRepository;
 import com.store.vitrine3d.domain.repository.CityRepository;
 import com.store.vitrine3d.domain.repository.StateRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final StoreSlugHistoryRepository slugHistoryRepository;
     private final StateRepository stateRepository;
     private final CityRepository cityRepository;
+    private final BusinessTypeRepository businessTypeRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
 
@@ -36,12 +38,14 @@ public class UserServiceImpl implements UserService {
                            StoreSlugHistoryRepository slugHistoryRepository,
                            StateRepository stateRepository,
                            CityRepository cityRepository,
+                           BusinessTypeRepository businessTypeRepository,
                            PasswordEncoder passwordEncoder,
                            StorageService storageService) {
         this.storeRepository = storeRepository;
         this.slugHistoryRepository = slugHistoryRepository;
         this.stateRepository = stateRepository;
         this.cityRepository = cityRepository;
+        this.businessTypeRepository = businessTypeRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
     }
@@ -68,6 +72,10 @@ public class UserServiceImpl implements UserService {
         if (request.getCityId() != null) {
             store.setCity(cityRepository.findById(request.getCityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cidade", request.getCityId())));
+        }
+        if (request.getBusinessTypeId() != null) {
+            store.setBusinessType(businessTypeRepository.findById(request.getBusinessTypeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de negocio", request.getBusinessTypeId())));
         }
 
         return storeRepository.save(store);
@@ -96,6 +104,10 @@ public class UserServiceImpl implements UserService {
         if (request.getCityId() != null) {
             store.setCity(cityRepository.findById(request.getCityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cidade", request.getCityId())));
+        }
+        if (request.getBusinessTypeId() != null) {
+            store.setBusinessType(businessTypeRepository.findById(request.getBusinessTypeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de negocio", request.getBusinessTypeId())));
         }
 
         return storeRepository.save(store);

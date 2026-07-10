@@ -1,12 +1,8 @@
 package com.store.vitrine3d.domain.service.impl;
 
-import com.store.vitrine3d.domain.model.Category;
-import com.store.vitrine3d.domain.model.Material;
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.WhatsappClick;
-import com.store.vitrine3d.domain.repository.CategoryRepository;
-import com.store.vitrine3d.domain.repository.MaterialRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
@@ -28,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -38,89 +35,92 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private static final int MAX_FEATURED = 5;
+    private static final int MAX_IMAGES = 5;
 
     private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
-    private final MaterialRepository materialRepository;
     private final StoreRepository storeRepository;
     private final StorageService storageService;
     private final WhatsappClickRepository whatsappClickRepository;
     private final CurrentStoreResolver currentStoreResolver;
+    private final ProductAttributeValidator attributeValidator;
+    private final ProductAttributeFilterBuilder attributeFilterBuilder;
 
     public ProductServiceImpl(ProductRepository productRepository,
-                               CategoryRepository categoryRepository,
-                               MaterialRepository materialRepository,
                                StoreRepository storeRepository,
                                StorageService storageService,
                                WhatsappClickRepository whatsappClickRepository,
-                               CurrentStoreResolver currentStoreResolver) {
+                               CurrentStoreResolver currentStoreResolver,
+                               ProductAttributeValidator attributeValidator,
+                               ProductAttributeFilterBuilder attributeFilterBuilder) {
         this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.materialRepository = materialRepository;
         this.storeRepository = storeRepository;
         this.storageService = storageService;
         this.whatsappClickRepository = whatsappClickRepository;
         this.currentStoreResolver = currentStoreResolver;
+        this.attributeValidator = attributeValidator;
+        this.attributeFilterBuilder = attributeFilterBuilder;
     }
 
     @Override
-    public Product save(ProductCreateRequest request, MultipartFile image) {
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
-
+    public Product save(ProductCreateRequest request, List<MultipartFile> images) {
         Store store = storeRepository.findById(request.getStoreId())
                 .orElseThrow(() -> new ResourceNotFoundException("Store", request.getStoreId()));
 
         assertStoreOwnership(store);
 
-        String imageUrl = (image != null && !image.isEmpty())
-                ? storageService.uploadFile(image)
-                : request.getImageUrl();
-
-        Material material = request.getMaterialId() != null
-                ? materialRepository.findById(request.getMaterialId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Material", request.getMaterialId()))
-                : null;
+        List<String> imageUrls = hasFiles(images) ? uploadImages(images) : nonNullList(request.getImageUrls());
 
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setMaterial(material);
-        product.setDimensions(request.getDimensions());
         product.setPrice(request.getPrice());
-        product.setImageUrl(imageUrl);
+        product.setImageUrls(imageUrls);
         product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : Boolean.TRUE);
-        product.setCategory(category);
         product.setStore(store);
+        product.setAttributes(attributeValidator.validateForCreate(store, request.getAttributes()));
 
         return productRepository.save(product);
     }
 
     @Override
-    public Product update(Long id, ProductUpdateRequest request, MultipartFile image) {
+    public Product update(Long id, ProductUpdateRequest request, List<MultipartFile> images) {
         Product product = findById(id);
         assertProductOwnership(product);
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
-        if (request.getDimensions() != null) product.setDimensions(request.getDimensions());
         if (request.getIsVisible() != null) product.setIsVisible(request.getIsVisible());
         if (request.getFeatured() != null) applyFeatured(product, request.getFeatured());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
 
-        if (request.getMaterialId() != null) {
-            product.setMaterial(materialRepository.findById(request.getMaterialId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Material", request.getMaterialId())));
+        if (hasFiles(images)) {
+            product.setImageUrls(uploadImages(images));
         }
-        if (request.getCategoryId() != null) {
-            product.setCategory(categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId())));
-        }
-        if (image != null && !image.isEmpty()) {
-            product.setImageUrl(storageService.uploadFile(image));
+        if (request.getAttributes() != null) {
+            product.setAttributes(attributeValidator.validateForUpdate(
+                    product.getStore(), product.getAttributes(), request.getAttributes()));
         }
 
         return productRepository.save(product);
+    }
+
+    private boolean hasFiles(List<MultipartFile> images) {
+        return images != null && images.stream().anyMatch(file -> file != null && !file.isEmpty());
+    }
+
+    private List<String> uploadImages(List<MultipartFile> images) {
+        List<MultipartFile> nonEmpty = images.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+        if (nonEmpty.size() > MAX_IMAGES) {
+            throw new BusinessRuleException("TOO_MANY_IMAGES",
+                    "A product can have at most " + MAX_IMAGES + " images.");
+        }
+        return new ArrayList<>(nonEmpty.stream().map(storageService::uploadFile).toList());
+    }
+
+    private List<String> nonNullList(List<String> values) {
+        return values != null ? new ArrayList<>(values) : new ArrayList<>();
     }
 
     @Override
@@ -167,10 +167,12 @@ public class ProductServiceImpl implements ProductService {
                 .and(ProductSpec.isVisible())
                 .and(ProductSpec.storeIsActive())
                 .and(filter.getKeyword() != null ? ProductSpec.nameContains(filter.getKeyword()) : null)
-                .and(filter.getCategoryId() != null ? ProductSpec.hasCategory(filter.getCategoryId()) : null)
-                .and(filter.getMaterialId() != null ? ProductSpec.hasMaterial(filter.getMaterialId()) : null)
                 .and(filter.getMinPrice() != null ? ProductSpec.minPrice(filter.getMinPrice()) : null)
                 .and(filter.getMaxPrice() != null ? ProductSpec.maxPrice(filter.getMaxPrice()) : null);
+
+        for (Specification<Product> attributeSpec : attributeFilterBuilder.build(storeId, filter.getAttributes())) {
+            spec = spec.and(attributeSpec);
+        }
 
         return productRepository.findAll(spec,
                 PageRequest.of(page, size, Sort.by("featured").descending().and(Sort.by("id").descending())));

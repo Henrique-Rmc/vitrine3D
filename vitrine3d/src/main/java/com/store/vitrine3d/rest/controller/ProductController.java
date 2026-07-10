@@ -8,6 +8,7 @@ import com.store.vitrine3d.rest.dto.ProductFilter;
 import com.store.vitrine3d.rest.dto.ProductResponse;
 import com.store.vitrine3d.rest.dto.ProductUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -56,32 +57,32 @@ public class ProductController {
         this.validator = validator;
     }
 
-    @Operation(summary = "Cadastra um produto com imagem (multipart: 'data' JSON + 'image' arquivo)")
+    @Operation(summary = "Cadastra um produto com fotos (multipart: 'data' JSON + até 5 'images')")
     @RequestBody(required = true, content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
             schema = @Schema(implementation = ProductCreateMultipartDoc.class)))
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductResponse> create(
             @RequestPart("data") String dataJson,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
 
         ProductCreateRequest request = objectMapper.readValue(dataJson, ProductCreateRequest.class);
         validate(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ProductResponse.from(productService.save(request, image)));
+                .body(ProductResponse.from(productService.save(request, images)));
     }
 
-    @Operation(summary = "Atualiza um produto (multipart: 'data' JSON + 'image' opcional)")
+    @Operation(summary = "Atualiza um produto (multipart: 'data' JSON + 'images' opcional — substitui todas as fotos)")
     @RequestBody(required = true, content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
             schema = @Schema(implementation = ProductUpdateMultipartDoc.class)))
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductResponse> update(
             @PathVariable Long id,
             @RequestPart("data") String dataJson,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
 
         ProductUpdateRequest request = objectMapper.readValue(dataJson, ProductUpdateRequest.class);
         validate(request);
-        return ResponseEntity.ok(ProductResponse.from(productService.update(id, request, image)));
+        return ResponseEntity.ok(ProductResponse.from(productService.update(id, request, images)));
     }
 
     @Operation(summary = "Toggle de visibilidade do produto")
@@ -189,16 +190,18 @@ public class ProductController {
     static class ProductCreateMultipartDoc {
         @Schema(description = "Dados do produto")
         public ProductCreateRequest data;
-        @Schema(type = "string", format = "binary", description = "Imagem do produto (opcional)")
-        public org.springframework.web.multipart.MultipartFile image;
+        @ArraySchema(schema = @Schema(type = "string", format = "binary"),
+                arraySchema = @Schema(description = "Fotos do produto (opcional, até 5)"))
+        public List<org.springframework.web.multipart.MultipartFile> images;
     }
 
     @Schema(description = "Multipart para atualização de produto")
     static class ProductUpdateMultipartDoc {
         @Schema(description = "Campos a atualizar")
         public ProductUpdateRequest data;
-        @Schema(type = "string", format = "binary", description = "Nova imagem (opcional)")
-        public org.springframework.web.multipart.MultipartFile image;
+        @ArraySchema(schema = @Schema(type = "string", format = "binary"),
+                arraySchema = @Schema(description = "Novas fotos (opcional, substitui todas as existentes)"))
+        public List<org.springframework.web.multipart.MultipartFile> images;
     }
 
     static class ProductRequestHints implements RuntimeHintsRegistrar {

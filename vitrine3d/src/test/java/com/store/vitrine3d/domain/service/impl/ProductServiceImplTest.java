@@ -1,11 +1,8 @@
 package com.store.vitrine3d.domain.service.impl;
 
-import com.store.vitrine3d.domain.model.Category;
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.WhatsappClick;
-import com.store.vitrine3d.domain.repository.CategoryRepository;
-import com.store.vitrine3d.domain.repository.MaterialRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
@@ -36,12 +33,12 @@ import static org.mockito.Mockito.*;
 class ProductServiceImplTest {
 
     @Mock private ProductRepository productRepository;
-    @Mock private CategoryRepository categoryRepository;
-    @Mock private MaterialRepository materialRepository;
     @Mock private StoreRepository storeRepository;
     @Mock private StorageService storageService;
     @Mock private WhatsappClickRepository whatsappClickRepository;
     @Mock private CurrentStoreResolver currentStoreResolver;
+    @Mock private ProductAttributeValidator attributeValidator;
+    @Mock private ProductAttributeFilterBuilder attributeFilterBuilder;
 
     @InjectMocks private ProductServiceImpl productService;
 
@@ -49,7 +46,6 @@ class ProductServiceImplTest {
     private static final String OWNER_EMAIL = "owner@test.com";
 
     private Store ownerStore;
-    private Category category;
 
     @BeforeEach
     void setUp() {
@@ -57,10 +53,6 @@ class ProductServiceImplTest {
         ownerStore.setId(STORE_ID);
         ownerStore.setEmail(OWNER_EMAIL);
         ownerStore.setWhatsappNumber("5511999999999");
-
-        category = new Category();
-        category.setId(1L);
-        category.setName("Animes");
     }
 
     // -------------------------------------------------------------------------
@@ -72,9 +64,9 @@ class ProductServiceImplTest {
         ProductCreateRequest request = buildCreateRequest();
         request.setPrice(new BigDecimal("49.90"));
 
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
+        when(attributeValidator.validateForCreate(any(), any())).thenReturn(java.util.Map.of());
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, null);
@@ -86,9 +78,9 @@ class ProductServiceImplTest {
     void save_withoutPrice_priceIsNull() {
         ProductCreateRequest request = buildCreateRequest();
 
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
+        when(attributeValidator.validateForCreate(any(), any())).thenReturn(java.util.Map.of());
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, null);
@@ -104,7 +96,6 @@ class ProductServiceImplTest {
         ProductCreateRequest request = buildCreateRequest();
         request.setStoreId(otherStore.getId());
 
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(otherStore.getId())).thenReturn(Optional.of(otherStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
 
@@ -119,15 +110,35 @@ class ProductServiceImplTest {
         var image = mock(org.springframework.web.multipart.MultipartFile.class);
         when(image.isEmpty()).thenReturn(false);
 
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
+        when(attributeValidator.validateForCreate(any(), any())).thenReturn(java.util.Map.of());
         when(storageService.uploadFile(image)).thenReturn("http://minio/test.png");
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Product result = productService.save(request, image);
+        Product result = productService.save(request, java.util.List.of(image));
 
-        assertThat(result.getImageUrl()).isEqualTo("http://minio/test.png");
+        assertThat(result.getImageUrls()).containsExactly("http://minio/test.png");
+    }
+
+    @Test
+    void save_withMoreThanFiveImages_throwsBusinessRuleException() {
+        ProductCreateRequest request = buildCreateRequest();
+        when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
+
+        var images = java.util.stream.IntStream.range(0, 6)
+                .mapToObj(i -> {
+                    var file = mock(org.springframework.web.multipart.MultipartFile.class);
+                    when(file.isEmpty()).thenReturn(false);
+                    return file;
+                })
+                .toList();
+
+        assertThatThrownBy(() -> productService.save(request, images))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("5");
+        verify(productRepository, never()).save(any());
     }
 
     // -------------------------------------------------------------------------
@@ -334,7 +345,6 @@ class ProductServiceImplTest {
     private ProductCreateRequest buildCreateRequest() {
         ProductCreateRequest req = new ProductCreateRequest();
         req.setName("Goku SSJ");
-        req.setCategoryId(1L);
         req.setStoreId(STORE_ID);
         return req;
     }
@@ -346,7 +356,6 @@ class ProductServiceImplTest {
         p.setIsVisible(true);
         p.setFeatured(false);
         p.setPrice(price);
-        p.setCategory(category);
         p.setStore(ownerStore);
         return p;
     }
