@@ -5,10 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
-public class AttributeDefinitionCreateRequest {
+public class ProductTypeCreateRequest {
 
     @NotBlank(message = "Key is required")
     @Pattern(regexp = "^[a-zA-Z][a-zA-Z0-9]*$", message = "Key must start with a letter and contain only letters/numbers")
@@ -19,13 +17,5 @@ public class AttributeDefinitionCreateRequest {
     @Size(max = 100, message = "Label must not exceed 100 characters")
     private String label;
 
-    private Boolean required;
-    private Boolean filterable;
     private Integer sortOrder;
-
-    @Size(min = 1, message = "At least one option is required for ENUM attributes")
-    private List<String> enumOptions;
-
-    /** Nulo = atributo geral, aplica a todo produto da loja. Preenchido = so aplica a produtos desse ProductType. */
-    private Long productTypeId;
 }

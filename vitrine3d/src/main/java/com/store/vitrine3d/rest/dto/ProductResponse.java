@@ -26,6 +26,8 @@ public class ProductResponse {
     private String whatsappUrl;
     private long clickCount;
     private Map<String, Object> attributes;
+    private Long productTypeId;
+    private String productTypeLabel;
 
     public static ProductResponse from(Product product) {
         return from(product, 0L);
@@ -45,6 +47,10 @@ public class ProductResponse {
         dto.setWhatsappUrl(buildWhatsappUrl(product));
         dto.setClickCount(clickCount);
         dto.setAttributes(product.getAttributes());
+        if (product.getProductType() != null) {
+            dto.setProductTypeId(product.getProductType().getId());
+            dto.setProductTypeLabel(product.getProductType().getLabel());
+        }
         return dto;
     }
 

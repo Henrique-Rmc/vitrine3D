@@ -11,6 +11,7 @@ import com.store.vitrine3d.domain.service.UserService;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
 import com.store.vitrine3d.rest.dto.StoreUpdateRequest;
+import com.store.vitrine3d.rest.exception.BusinessRuleException;
 import com.store.vitrine3d.rest.exception.EmailAlreadyExistsException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,12 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @Transactional
 public class UserServiceImpl implements UserService {
+
+    private static final int MAX_PROMO_IMAGES = 3;
 
     private final StoreRepository storeRepository;
     private final StoreSlugHistoryRepository slugHistoryRepository;
@@ -118,6 +123,31 @@ public class UserServiceImpl implements UserService {
         Store store = storeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
         store.setLogoUrl(storageService.uploadFile(logo));
+        return storeRepository.save(store);
+    }
+
+    @Override
+    public Store uploadCoverImage(UUID id, MultipartFile coverImage) {
+        Store store = storeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
+        store.setCoverImageUrl(storageService.uploadFile(coverImage));
+        return storeRepository.save(store);
+    }
+
+    @Override
+    public Store uploadPromoImages(UUID id, List<MultipartFile> promoImages) {
+        Store store = storeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
+
+        List<MultipartFile> nonEmpty = promoImages != null
+                ? promoImages.stream().filter(file -> file != null && !file.isEmpty()).toList()
+                : List.of();
+        if (nonEmpty.size() > MAX_PROMO_IMAGES) {
+            throw new BusinessRuleException("TOO_MANY_IMAGES",
+                    "A store can have at most " + MAX_PROMO_IMAGES + " promotional images.");
+        }
+
+        store.setPromoImageUrls(new ArrayList<>(nonEmpty.stream().map(storageService::uploadFile).toList()));
         return storeRepository.save(store);
     }
 

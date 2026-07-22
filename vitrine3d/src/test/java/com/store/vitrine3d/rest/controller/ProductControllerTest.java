@@ -140,6 +140,7 @@ class ProductControllerTest {
         ProductCreateRequest request = new ProductCreateRequest();
         request.setName("Pikachu");
         request.setStoreId(STORE_UUID);
+        request.setProductTypeId(1L);
 
         MockMultipartFile dataJson = new MockMultipartFile(
                 "data", "", MediaType.APPLICATION_JSON_VALUE,

@@ -17,7 +17,7 @@ public class AttributeDefinitionResponse {
     private Boolean filterable;
     private Integer sortOrder;
     private List<String> enumOptions;
-    private Boolean custom;
+    private Long productTypeId;
 
     public static AttributeDefinitionResponse from(AttributeDefinition definition) {
         AttributeDefinitionResponse dto = new AttributeDefinitionResponse();
@@ -30,7 +30,7 @@ public class AttributeDefinitionResponse {
         dto.setFilterable(definition.getFilterable());
         dto.setSortOrder(definition.getSortOrder());
         dto.setEnumOptions(definition.getEnumOptions());
-        dto.setCustom(definition.getStore() != null);
+        dto.setProductTypeId(definition.getProductType() != null ? definition.getProductType().getId() : null);
         return dto;
     }
 }

@@ -26,4 +26,7 @@ public class ProductUpdateRequest {
 
     /** Atributos dinamicos a sobrepor (merge) sobre os existentes. */
     private Map<String, Object> attributes;
+
+    /** Nulo = nao altera o ProductType atual do produto. */
+    private Long productTypeId;
 }

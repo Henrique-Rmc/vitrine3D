@@ -30,6 +30,10 @@ public final class ProductSpec {
         return (root, query, cb) -> cb.isTrue(root.get("featured"));
     }
 
+    public static Specification<Product> hasProductType(Long productTypeId) {
+        return (root, query, cb) -> cb.equal(root.get("productType").get("id"), productTypeId);
+    }
+
     public static Specification<Product> nameContains(String keyword) {
         String pattern = "%" + keyword.toLowerCase()
                 .replace("\\", "\\\\")

@@ -44,6 +44,12 @@ public class Product {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
+    // Sub-categoria criada pela propria loja (ex.: "Camisa") — obrigatoria. Toda loja precisa
+    // ter pelo menos um ProductType cadastrado antes de conseguir criar produtos.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id", nullable = false)
+    private ProductType productType;
+
     // Nullable no banco de propósito: ALTER TABLE ADD COLUMN ... NOT NULL falha em tabelas
     // com linhas existentes (sem valor pra preencher). Produtos novos sempre recebem pelo
     // menos um Map vazio via ProductAttributeValidator; produtos antigos ficam null.
@@ -75,6 +81,9 @@ public class Product {
 
     public Store getStore() { return store; }
     public void setStore(Store store) { this.store = store; }
+
+    public ProductType getProductType() { return productType; }
+    public void setProductType(ProductType productType) { this.productType = productType; }
 
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }

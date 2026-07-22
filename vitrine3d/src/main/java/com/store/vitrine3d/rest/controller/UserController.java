@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "Usuários", description = "Cadastro e consulta de lojistas")
@@ -57,6 +58,28 @@ public class UserController {
             throw new AccessDeniedException("You do not have permission to modify this store.");
         }
         return ResponseEntity.ok(StoreResponse.from(userService.uploadLogo(id, logo)));
+    }
+
+    @Operation(summary = "Faz upload da foto de capa da loja")
+    @PostMapping(value = "/{id}/cover-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<StoreResponse> uploadCoverImage(@PathVariable UUID id,
+                                                          @RequestPart("coverImage") MultipartFile coverImage,
+                                                          @AuthenticationPrincipal UserDetails principal) {
+        if (!isOwner(principal, id)) {
+            throw new AccessDeniedException("You do not have permission to modify this store.");
+        }
+        return ResponseEntity.ok(StoreResponse.from(userService.uploadCoverImage(id, coverImage)));
+    }
+
+    @Operation(summary = "Faz upload das fotos informativas da loja (até 3 — substitui todas as existentes)")
+    @PostMapping(value = "/{id}/promo-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<StoreResponse> uploadPromoImages(@PathVariable UUID id,
+                                                           @RequestPart(value = "promoImages", required = false) List<MultipartFile> promoImages,
+                                                           @AuthenticationPrincipal UserDetails principal) {
+        if (!isOwner(principal, id)) {
+            throw new AccessDeniedException("You do not have permission to modify this store.");
+        }
+        return ResponseEntity.ok(StoreResponse.from(userService.uploadPromoImages(id, promoImages)));
     }
 
     @Operation(summary = "Busca lojista por ID — perfil público")

@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,9 +21,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -141,5 +145,58 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users/" + missing))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- POST /api/users/{id}/cover-image ---
+
+    @Test
+    void whenUploadCoverImageAsOwner_thenReturns200() throws Exception {
+        when(userService.findByEmail("user")).thenReturn(Optional.of(buildMockStore()));
+        MockMultipartFile coverImage = new MockMultipartFile(
+                "coverImage", "cover.png", MediaType.IMAGE_PNG_VALUE, "fake-image".getBytes());
+        Store updated = buildMockStore();
+        updated.setCoverImageUrl("http://minio/cover.png");
+        when(userService.uploadCoverImage(eq(STORE_UUID), any())).thenReturn(updated);
+
+        mockMvc.perform(multipart("/api/users/" + STORE_UUID + "/cover-image")
+                        .file(coverImage)
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverImageUrl").value("http://minio/cover.png"));
+    }
+
+    @Test
+    void whenUploadCoverImageNotOwner_thenReturns403() throws Exception {
+        Store otherStore = buildMockStore();
+        otherStore.setId(UUID.randomUUID());
+        when(userService.findByEmail("user")).thenReturn(Optional.of(otherStore));
+        MockMultipartFile coverImage = new MockMultipartFile(
+                "coverImage", "cover.png", MediaType.IMAGE_PNG_VALUE, "fake-image".getBytes());
+
+        mockMvc.perform(multipart("/api/users/" + STORE_UUID + "/cover-image")
+                        .file(coverImage)
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    // --- POST /api/users/{id}/promo-images ---
+
+    @Test
+    void whenUploadPromoImagesAsOwner_thenReturns200() throws Exception {
+        when(userService.findByEmail("user")).thenReturn(Optional.of(buildMockStore()));
+        MockMultipartFile promo1 = new MockMultipartFile(
+                "promoImages", "promo1.png", MediaType.IMAGE_PNG_VALUE, "fake-image-1".getBytes());
+        MockMultipartFile promo2 = new MockMultipartFile(
+                "promoImages", "promo2.png", MediaType.IMAGE_PNG_VALUE, "fake-image-2".getBytes());
+        Store updated = buildMockStore();
+        updated.setPromoImageUrls(java.util.List.of("http://minio/promo1.png", "http://minio/promo2.png"));
+        when(userService.uploadPromoImages(eq(STORE_UUID), anyList())).thenReturn(updated);
+
+        mockMvc.perform(multipart("/api/users/" + STORE_UUID + "/promo-images")
+                        .file(promo1)
+                        .file(promo2)
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.promoImageUrls.length()").value(2));
     }
 }
