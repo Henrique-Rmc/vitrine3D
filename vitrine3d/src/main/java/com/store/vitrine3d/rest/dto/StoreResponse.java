@@ -3,6 +3,7 @@ package com.store.vitrine3d.rest.dto;
 import com.store.vitrine3d.domain.model.Store;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -15,6 +16,8 @@ public class StoreResponse {
     private String whatsappNumber;
     private String storeDescription;
     private String logoUrl;
+    private String coverImageUrl;
+    private List<String> promoImageUrls;
     private Boolean isActive;
     private Long stateId;
     private String stateName;
@@ -47,6 +50,8 @@ public class StoreResponse {
         dto.setWhatsappNumber(store.getWhatsappNumber());
         dto.setStoreDescription(store.getStoreDescription());
         dto.setLogoUrl(store.getLogoUrl());
+        dto.setCoverImageUrl(store.getCoverImageUrl());
+        dto.setPromoImageUrls(store.getPromoImageUrls());
 
         if (store.getState() != null) {
             dto.setStateId(store.getState().getId());

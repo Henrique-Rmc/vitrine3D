@@ -9,16 +9,19 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AttributeDefinitionRepository extends JpaRepository<AttributeDefinition, Long> {
-    /** Schema "puro" da vertical, sem contexto de loja — usado pelo cadastro/BusinessTypeController. */
-    List<AttributeDefinition> findByBusinessTypeIdOrderBySortOrderAsc(Long businessTypeId);
-
     /**
-     * Atributos efetivamente disponiveis para uma loja: globais da vertical (store IS NULL)
-     * + customizados dela mesma. Nome derivado do Spring Data nao expressa corretamente
-     * "X AND (A OR B)", por isso a query explicita.
+     * Atributos efetivamente disponiveis para uma loja, opcionalmente escopados a um
+     * ProductType: gerais da loja (productType IS NULL) + escopados a esse ProductType
+     * especifico. productTypeId pode ser nulo — nesse caso "d.productType.id =
+     * :productTypeId" nunca bate (logica de tres valores do SQL), entao so o ramo
+     * "d.productType IS NULL" casa, que e exatamente o comportamento de produto sem tipo.
      */
-    @Query("SELECT d FROM AttributeDefinition d WHERE d.businessType.id = :businessTypeId " +
-           "AND (d.store IS NULL OR d.store.id = :storeId) ORDER BY d.sortOrder ASC")
-    List<AttributeDefinition> findEffectiveForStore(@Param("businessTypeId") Long businessTypeId,
-                                                     @Param("storeId") UUID storeId);
+    @Query("SELECT d FROM AttributeDefinition d WHERE d.store.id = :storeId " +
+           "AND (d.productType IS NULL OR d.productType.id = :productTypeId) " +
+           "ORDER BY d.sortOrder ASC")
+    List<AttributeDefinition> findEffectiveForStore(@Param("storeId") UUID storeId,
+                                                     @Param("productTypeId") Long productTypeId);
+
+    /** Todos os atributos de uma loja, gerais ou escopados a qualquer ProductType — usado pra checar colisao de key na criacao. */
+    List<AttributeDefinition> findByStoreId(UUID storeId);
 }

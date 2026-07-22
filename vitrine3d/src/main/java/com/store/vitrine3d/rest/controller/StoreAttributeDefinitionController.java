@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Atributos da loja", description = "Atributos customizados por loja e opt-out de atributos globais")
+@Tag(name = "Atributos da loja", description = "Atributos customizados de cada loja")
 @RestController
 @RequestMapping("/api/products/store/{storeId}/attributes")
 public class StoreAttributeDefinitionController {
@@ -25,10 +25,12 @@ public class StoreAttributeDefinitionController {
         this.service = service;
     }
 
-    @Operation(summary = "Lista os atributos efetivos da loja (globais nao escondidos + customizados dela)")
+    @Operation(summary = "Lista os atributos da loja, opcionalmente escopados a um ProductType")
     @GetMapping
-    public List<AttributeDefinitionResponse> listEffective(@PathVariable UUID storeId) {
-        return service.listEffective(storeId).stream()
+    public List<AttributeDefinitionResponse> listEffective(
+            @PathVariable UUID storeId,
+            @RequestParam(required = false) Long productTypeId) {
+        return service.listEffective(storeId, productTypeId).stream()
                 .map(AttributeDefinitionResponse::from)
                 .toList();
     }
@@ -49,21 +51,7 @@ public class StoreAttributeDefinitionController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Esconde um atributo global da vertical para essa loja (nao apaga o atributo)")
-    @PatchMapping("/{attributeDefinitionId}/hide")
-    public ResponseEntity<Void> hideGlobal(@PathVariable UUID storeId, @PathVariable Long attributeDefinitionId) {
-        service.hideGlobal(storeId, attributeDefinitionId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Reexibe um atributo global previamente escondido")
-    @PatchMapping("/{attributeDefinitionId}/unhide")
-    public ResponseEntity<Void> unhideGlobal(@PathVariable UUID storeId, @PathVariable Long attributeDefinitionId) {
-        service.unhideGlobal(storeId, attributeDefinitionId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Cadastra um valor de opcao pra um atributo do tipo lista (ENUM) — global da vertical ou customizado da propria loja")
+    @Operation(summary = "Cadastra um valor de opcao pra um atributo do tipo lista (ENUM) da propria loja")
     @PostMapping("/{attributeDefinitionId}/options")
     public ResponseEntity<AttributeDefinitionResponse> addOption(
             @PathVariable UUID storeId,

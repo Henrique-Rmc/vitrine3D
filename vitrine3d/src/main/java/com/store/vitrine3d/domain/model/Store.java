@@ -6,9 +6,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -37,6 +35,15 @@ public class Store {
     private String whatsappNumber;
     private String storeDescription;
     private String logoUrl;
+    private String coverImageUrl;
+
+    // Ate 3 fotos informativas (ex.: "Promoção de 50% em camisas") — a loja substitui o
+    // conjunto inteiro a cada upload, nao adiciona/remove uma foto isolada.
+    @ElementCollection
+    @CollectionTable(name = "store_promo_images", joinColumns = @JoinColumn(name = "store_id"))
+    @Column(name = "image_url", nullable = false)
+    @OrderColumn(name = "image_order")
+    private List<String> promoImageUrls = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -63,13 +70,6 @@ public class Store {
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
-
-    // IDs de AttributeDefinition globais que essa loja optou por nao usar/exibir.
-    // Nao afeta outras lojas; nao apaga o AttributeDefinition original.
-    @ElementCollection
-    @CollectionTable(name = "store_hidden_attributes", joinColumns = @JoinColumn(name = "store_id"))
-    @Column(name = "attribute_definition_id")
-    private Set<Long> hiddenAttributeDefinitionIds = new HashSet<>();
 
     public Store() {}
 
@@ -100,6 +100,12 @@ public class Store {
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
 
+    public String getCoverImageUrl() { return coverImageUrl; }
+    public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
+
+    public List<String> getPromoImageUrls() { return promoImageUrls; }
+    public void setPromoImageUrls(List<String> promoImageUrls) { this.promoImageUrls = promoImageUrls; }
+
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
@@ -117,9 +123,4 @@ public class Store {
 
     public List<Product> getProducts() { return products; }
     public void setProducts(List<Product> products) { this.products = products; }
-
-    public Set<Long> getHiddenAttributeDefinitionIds() { return hiddenAttributeDefinitionIds; }
-    public void setHiddenAttributeDefinitionIds(Set<Long> hiddenAttributeDefinitionIds) {
-        this.hiddenAttributeDefinitionIds = hiddenAttributeDefinitionIds;
-    }
 }

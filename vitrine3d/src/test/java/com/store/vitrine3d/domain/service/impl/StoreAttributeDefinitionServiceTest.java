@@ -2,16 +2,15 @@ package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.AttributeDefinition;
 import com.store.vitrine3d.domain.model.AttributeType;
-import com.store.vitrine3d.domain.model.BusinessType;
+import com.store.vitrine3d.domain.model.ProductType;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.repository.AttributeDefinitionRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
-import com.store.vitrine3d.domain.repository.StoreAttributeOptionRepository;
+import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.service.CurrentStoreResolver;
 import com.store.vitrine3d.rest.dto.AttributeDefinitionCreateRequest;
 import com.store.vitrine3d.rest.exception.BusinessRuleException;
-import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,10 +21,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,8 +34,8 @@ import static org.mockito.Mockito.*;
 class StoreAttributeDefinitionServiceTest {
 
     @Mock private AttributeDefinitionRepository attributeDefinitionRepository;
-    @Mock private StoreAttributeOptionRepository storeAttributeOptionRepository;
     @Mock private ProductRepository productRepository;
+    @Mock private ProductTypeRepository productTypeRepository;
     @Mock private StoreRepository storeRepository;
     @Mock private CurrentStoreResolver currentStoreResolver;
 
@@ -46,24 +43,15 @@ class StoreAttributeDefinitionServiceTest {
 
     private static final UUID STORE_ID = UUID.randomUUID();
 
-    private BusinessType businessType;
     private Store store;
 
     @BeforeEach
     void setUp() {
-        EffectiveAttributeDefinitionResolver resolver =
-                new EffectiveAttributeDefinitionResolver(storeAttributeOptionRepository);
-        service = new StoreAttributeDefinitionService(attributeDefinitionRepository, storeAttributeOptionRepository,
-                productRepository, storeRepository, currentStoreResolver, resolver);
-
-        businessType = new BusinessType();
-        businessType.setId(1L);
-        businessType.setName("Automoveis");
+        service = new StoreAttributeDefinitionService(
+                attributeDefinitionRepository, productRepository, productTypeRepository, storeRepository, currentStoreResolver);
 
         store = new Store();
         store.setId(STORE_ID);
-        store.setBusinessType(businessType);
-        store.setHiddenAttributeDefinitionIds(new HashSet<>());
 
         lenient().when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(store));
     }
@@ -72,53 +60,43 @@ class StoreAttributeDefinitionServiceTest {
         AttributeDefinitionCreateRequest request = new AttributeDefinitionCreateRequest();
         request.setKey(key);
         request.setLabel("Cor do interior");
-        request.setType(AttributeType.TEXT);
         return request;
     }
 
-    private AttributeDefinition globalDefinition(Long id, String key) {
+    private AttributeDefinitionCreateRequest createRequest(String key, Long productTypeId) {
+        AttributeDefinitionCreateRequest request = createRequest(key);
+        request.setProductTypeId(productTypeId);
+        return request;
+    }
+
+    private AttributeDefinition definition(Long id, String key, Store owner) {
         AttributeDefinition definition = new AttributeDefinition();
         definition.setId(id);
-        definition.setBusinessType(businessType);
-        definition.setKey(key);
-        definition.setType(AttributeType.TEXT);
-        return definition;
-    }
-
-    private AttributeDefinition customDefinition(Long id, String key, Store owner) {
-        AttributeDefinition definition = globalDefinition(id, key);
         definition.setStore(owner);
+        definition.setKey(key);
+        definition.setType(AttributeType.NUMBER);
         return definition;
     }
 
-    private AttributeDefinition globalEnumDefinition(Long id, String key) {
-        AttributeDefinition definition = globalDefinition(id, key);
+    private AttributeDefinition enumDefinition(Long id, String key, Store owner) {
+        AttributeDefinition definition = definition(id, key, owner);
         definition.setType(AttributeType.ENUM);
         definition.setEnumOptions(new ArrayList<>());
         return definition;
     }
 
-    private AttributeDefinition customEnumDefinition(Long id, String key, Store owner) {
-        AttributeDefinition definition = customDefinition(id, key, owner);
-        definition.setType(AttributeType.ENUM);
-        definition.setEnumOptions(new ArrayList<>());
-        return definition;
+    private ProductType productType(Long id, Store owner) {
+        ProductType productType = new ProductType();
+        productType.setId(id);
+        productType.setStore(owner);
+        productType.setKey("camisa");
+        productType.setLabel("Camisa");
+        return productType;
     }
 
     // -------------------------------------------------------------------------
     // createCustom
     // -------------------------------------------------------------------------
-
-    @Test
-    void createCustom_withoutBusinessType_throws() {
-        Store storeWithoutType = new Store();
-        storeWithoutType.setId(STORE_ID);
-        when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(storeWithoutType));
-        when(currentStoreResolver.getCurrentStore()).thenReturn(storeWithoutType);
-
-        assertThatThrownBy(() -> service.createCustom(STORE_ID, createRequest("corInterior")))
-                .isInstanceOf(BusinessRuleException.class);
-    }
 
     @Test
     void createCustom_notOwner_throwsAccessDenied() {
@@ -132,10 +110,10 @@ class StoreAttributeDefinitionServiceTest {
     }
 
     @Test
-    void createCustom_keyCollidesWithGlobal_throws() {
+    void createCustom_keyCollides_throws() {
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findEffectiveForStore(1L, STORE_ID))
-                .thenReturn(List.of(globalDefinition(10L, "marca")));
+        when(attributeDefinitionRepository.findEffectiveForStore(STORE_ID, null))
+                .thenReturn(List.of(definition(10L, "marca", store)));
 
         assertThatThrownBy(() -> service.createCustom(STORE_ID, createRequest("marca")))
                 .isInstanceOf(BusinessRuleException.class)
@@ -146,7 +124,7 @@ class StoreAttributeDefinitionServiceTest {
     @Test
     void createCustom_validRequest_savesWithStoreSet() {
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findEffectiveForStore(1L, STORE_ID)).thenReturn(List.of());
+        when(attributeDefinitionRepository.findEffectiveForStore(STORE_ID, null)).thenReturn(List.of());
         when(attributeDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ArgumentCaptor<AttributeDefinition> captor = ArgumentCaptor.forClass(AttributeDefinition.class);
@@ -155,8 +133,63 @@ class StoreAttributeDefinitionServiceTest {
 
         verify(attributeDefinitionRepository).save(captor.capture());
         assertThat(captor.getValue().getStore()).isSameAs(store);
-        assertThat(captor.getValue().getBusinessType()).isSameAs(businessType);
+        assertThat(captor.getValue().getProductType()).isNull();
         assertThat(result.getKey()).isEqualTo("corInterior");
+    }
+
+    @Test
+    void createCustom_productTypeFromAnotherStore_throwsAccessDenied() {
+        Store otherStore = new Store();
+        otherStore.setId(UUID.randomUUID());
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(productTypeRepository.findById(50L)).thenReturn(Optional.of(productType(50L, otherStore)));
+
+        assertThatThrownBy(() -> service.createCustom(STORE_ID, createRequest("franquia", 50L)))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void createCustom_scopedToProductType_savesWithProductTypeSet() {
+        ProductType camisa = productType(50L, store);
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(productTypeRepository.findById(50L)).thenReturn(Optional.of(camisa));
+        when(attributeDefinitionRepository.findEffectiveForStore(STORE_ID, 50L)).thenReturn(List.of());
+        when(attributeDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ArgumentCaptor<AttributeDefinition> captor = ArgumentCaptor.forClass(AttributeDefinition.class);
+
+        service.createCustom(STORE_ID, createRequest("franquia", 50L));
+
+        verify(attributeDefinitionRepository).save(captor.capture());
+        assertThat(captor.getValue().getProductType()).isSameAs(camisa);
+    }
+
+    @Test
+    void createCustom_scopedToProductType_collidesWithGeneralAttribute_throws() {
+        ProductType camisa = productType(50L, store);
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(productTypeRepository.findById(50L)).thenReturn(Optional.of(camisa));
+        // findEffectiveForStore(store, 50L) ja inclui atributos gerais da loja (productType null)
+        when(attributeDefinitionRepository.findEffectiveForStore(STORE_ID, 50L))
+                .thenReturn(List.of(definition(11L, "tamanho", store)));
+
+        assertThatThrownBy(() -> service.createCustom(STORE_ID, createRequest("tamanho", 50L)))
+                .isInstanceOf(BusinessRuleException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void createCustom_generalAttribute_collidesWithProductTypeScoped_throws() {
+        AttributeDefinition scoped = definition(12L, "franquia", store);
+        scoped.setProductType(productType(50L, store));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findEffectiveForStore(STORE_ID, null)).thenReturn(List.of());
+        when(attributeDefinitionRepository.findByStoreId(STORE_ID)).thenReturn(List.of(scoped));
+
+        assertThatThrownBy(() -> service.createCustom(STORE_ID, createRequest("franquia")))
+                .isInstanceOf(BusinessRuleException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
     }
 
     // -------------------------------------------------------------------------
@@ -164,22 +197,12 @@ class StoreAttributeDefinitionServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void deleteCustom_globalAttribute_throwsAccessDenied() {
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(globalDefinition(10L, "marca")));
-
-        assertThatThrownBy(() -> service.deleteCustom(STORE_ID, 10L))
-                .isInstanceOf(AccessDeniedException.class);
-        verify(attributeDefinitionRepository, never()).delete(any());
-    }
-
-    @Test
     void deleteCustom_attributeFromAnotherStore_throwsAccessDenied() {
         Store otherStore = new Store();
         otherStore.setId(UUID.randomUUID());
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
         when(attributeDefinitionRepository.findById(10L))
-                .thenReturn(Optional.of(customDefinition(10L, "corInterior", otherStore)));
+                .thenReturn(Optional.of(definition(10L, "corInterior", otherStore)));
 
         assertThatThrownBy(() -> service.deleteCustom(STORE_ID, 10L))
                 .isInstanceOf(AccessDeniedException.class);
@@ -189,7 +212,7 @@ class StoreAttributeDefinitionServiceTest {
     void deleteCustom_attributeInUse_throwsBusinessRuleException() {
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
         when(attributeDefinitionRepository.findById(10L))
-                .thenReturn(Optional.of(customDefinition(10L, "corInterior", store)));
+                .thenReturn(Optional.of(definition(10L, "corInterior", store)));
         when(productRepository.exists(any(Specification.class))).thenReturn(true);
 
         assertThatThrownBy(() -> service.deleteCustom(STORE_ID, 10L))
@@ -200,7 +223,7 @@ class StoreAttributeDefinitionServiceTest {
 
     @Test
     void deleteCustom_notInUse_deletesSuccessfully() {
-        AttributeDefinition definition = customDefinition(10L, "corInterior", store);
+        AttributeDefinition definition = definition(10L, "corInterior", store);
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
         when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
         when(productRepository.exists(any(Specification.class))).thenReturn(false);
@@ -211,80 +234,17 @@ class StoreAttributeDefinitionServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // hideGlobal / unhideGlobal
-    // -------------------------------------------------------------------------
-
-    @Test
-    void hideGlobal_onCustomAttribute_throwsBusinessRuleException() {
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L))
-                .thenReturn(Optional.of(customDefinition(10L, "corInterior", store)));
-
-        assertThatThrownBy(() -> service.hideGlobal(STORE_ID, 10L))
-                .isInstanceOf(BusinessRuleException.class);
-    }
-
-    @Test
-    void hideGlobal_fromDifferentBusinessType_throwsAccessDenied() {
-        BusinessType otherType = new BusinessType();
-        otherType.setId(2L);
-        AttributeDefinition definition = new AttributeDefinition();
-        definition.setId(10L);
-        definition.setBusinessType(otherType);
-        definition.setKey("area");
-
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
-
-        assertThatThrownBy(() -> service.hideGlobal(STORE_ID, 10L))
-                .isInstanceOf(AccessDeniedException.class);
-    }
-
-    @Test
-    void hideGlobal_validGlobalAttribute_addsToHiddenSetAndSavesStore() {
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(globalDefinition(10L, "marca")));
-
-        service.hideGlobal(STORE_ID, 10L);
-
-        assertThat(store.getHiddenAttributeDefinitionIds()).containsExactly(10L);
-        verify(storeRepository).save(store);
-    }
-
-    @Test
-    void unhideGlobal_removesFromHiddenSet() {
-        store.setHiddenAttributeDefinitionIds(new HashSet<>(Set.of(10L)));
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(globalDefinition(10L, "marca")));
-
-        service.unhideGlobal(STORE_ID, 10L);
-
-        assertThat(store.getHiddenAttributeDefinitionIds()).isEmpty();
-        verify(storeRepository).save(store);
-    }
-
-    // -------------------------------------------------------------------------
     // listEffective
     // -------------------------------------------------------------------------
 
     @Test
-    void listEffective_excludesHiddenGlobals() {
-        store.setHiddenAttributeDefinitionIds(new HashSet<>(Set.of(10L)));
-        when(attributeDefinitionRepository.findEffectiveForStore(1L, STORE_ID))
-                .thenReturn(List.of(globalDefinition(10L, "marca"), globalDefinition(11L, "ano")));
+    void listEffective_delegatesToRepository() {
+        when(attributeDefinitionRepository.findEffectiveForStore(STORE_ID, null))
+                .thenReturn(List.of(definition(10L, "marca", store), definition(11L, "ano", store)));
 
-        List<AttributeDefinition> result = service.listEffective(STORE_ID);
+        List<AttributeDefinition> result = service.listEffective(STORE_ID, null);
 
-        assertThat(result).extracting(AttributeDefinition::getKey).containsExactly("ano");
-    }
-
-    @Test
-    void listEffective_storeNotFound_throwsResourceNotFoundException() {
-        UUID unknownId = UUID.randomUUID();
-        when(storeRepository.findById(unknownId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.listEffective(unknownId))
-                .isInstanceOf(ResourceNotFoundException.class);
+        assertThat(result).extracting(AttributeDefinition::getKey).containsExactly("marca", "ano");
     }
 
     // -------------------------------------------------------------------------
@@ -294,7 +254,7 @@ class StoreAttributeDefinitionServiceTest {
     @Test
     void addOption_notEnumType_throws() {
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(globalDefinition(10L, "marca")));
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition(10L, "marca", store)));
 
         assertThatThrownBy(() -> service.addOption(STORE_ID, 10L, "Toyota"))
                 .isInstanceOf(BusinessRuleException.class);
@@ -304,77 +264,27 @@ class StoreAttributeDefinitionServiceTest {
     @Test
     void addOption_blankValue_throws() {
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(globalEnumDefinition(10L, "material")));
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(enumDefinition(10L, "material", store)));
 
         assertThatThrownBy(() -> service.addOption(STORE_ID, 10L, "   "))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    void addOption_globalAttribute_wrongBusinessType_throwsAccessDenied() {
-        BusinessType otherType = new BusinessType();
-        otherType.setId(2L);
-        AttributeDefinition definition = globalEnumDefinition(10L, "tipoImovel");
-        definition.setBusinessType(otherType);
-
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
-
-        assertThatThrownBy(() -> service.addOption(STORE_ID, 10L, "Casa"))
-                .isInstanceOf(AccessDeniedException.class);
-    }
-
-    @Test
-    void addOption_customAttribute_fromAnotherStore_throwsAccessDenied() {
+    void addOption_fromAnotherStore_throwsAccessDenied() {
         Store otherStore = new Store();
         otherStore.setId(UUID.randomUUID());
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
         when(attributeDefinitionRepository.findById(10L))
-                .thenReturn(Optional.of(customEnumDefinition(10L, "corInterior", otherStore)));
+                .thenReturn(Optional.of(enumDefinition(10L, "corInterior", otherStore)));
 
         assertThatThrownBy(() -> service.addOption(STORE_ID, 10L, "Preto"))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
-    void addOption_globalAttribute_registersPerStoreValue() {
-        AttributeDefinition definition = globalEnumDefinition(10L, "material");
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
-        when(storeAttributeOptionRepository.existsByStoreIdAndAttributeDefinitionIdAndValue(STORE_ID, 10L, "Ouro"))
-                .thenReturn(false);
-        when(storeAttributeOptionRepository.countByStoreIdAndAttributeDefinitionId(STORE_ID, 10L)).thenReturn(0L);
-        com.store.vitrine3d.domain.model.StoreAttributeOption savedOuro = new com.store.vitrine3d.domain.model.StoreAttributeOption();
-        savedOuro.setValue("Ouro");
-        when(storeAttributeOptionRepository.findByStoreIdAndAttributeDefinitionIdOrderBySortOrderAsc(STORE_ID, 10L))
-                .thenReturn(List.of(savedOuro));
-
-        AttributeDefinition result = service.addOption(STORE_ID, 10L, "Ouro");
-
-        verify(storeAttributeOptionRepository).save(argThat(option ->
-                option.getValue().equals("Ouro") && option.getSortOrder() == 0
-                        && option.getStore() == store && option.getAttributeDefinition() == definition));
-        verify(attributeDefinitionRepository, never()).save(any());
-        // Nao deve tocar enumOptions da entidade global compartilhada.
-        assertThat(definition.getEnumOptions()).isEmpty();
-        assertThat(result.getEnumOptions()).containsExactly("Ouro");
-    }
-
-    @Test
-    void addOption_globalAttribute_duplicateValue_throws() {
-        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
-        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(globalEnumDefinition(10L, "material")));
-        when(storeAttributeOptionRepository.existsByStoreIdAndAttributeDefinitionIdAndValue(STORE_ID, 10L, "Ouro"))
-                .thenReturn(true);
-
-        assertThatThrownBy(() -> service.addOption(STORE_ID, 10L, "Ouro"))
-                .isInstanceOf(BusinessRuleException.class);
-        verify(storeAttributeOptionRepository, never()).save(any());
-    }
-
-    @Test
-    void addOption_customAttribute_addsDirectlyToEnumOptions() {
-        AttributeDefinition definition = customEnumDefinition(10L, "corInterior", store);
+    void addOption_addsDirectlyToEnumOptions() {
+        AttributeDefinition definition = enumDefinition(10L, "corInterior", store);
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
         when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
 
@@ -382,12 +292,11 @@ class StoreAttributeDefinitionServiceTest {
 
         assertThat(definition.getEnumOptions()).containsExactly("Preto");
         verify(attributeDefinitionRepository).save(definition);
-        verifyNoInteractions(storeAttributeOptionRepository);
     }
 
     @Test
-    void addOption_customAttribute_duplicateValue_throws() {
-        AttributeDefinition definition = customEnumDefinition(10L, "corInterior", store);
+    void addOption_duplicateValue_throws() {
+        AttributeDefinition definition = enumDefinition(10L, "corInterior", store);
         definition.getEnumOptions().add("Preto");
         when(currentStoreResolver.getCurrentStore()).thenReturn(store);
         when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));

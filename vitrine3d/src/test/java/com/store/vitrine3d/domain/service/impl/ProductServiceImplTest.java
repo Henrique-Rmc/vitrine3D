@@ -4,6 +4,7 @@ import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.WhatsappClick;
 import com.store.vitrine3d.domain.repository.ProductRepository;
+import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
 import com.store.vitrine3d.domain.service.CurrentStoreResolver;
@@ -34,6 +35,7 @@ class ProductServiceImplTest {
 
     @Mock private ProductRepository productRepository;
     @Mock private StoreRepository storeRepository;
+    @Mock private ProductTypeRepository productTypeRepository;
     @Mock private StorageService storageService;
     @Mock private WhatsappClickRepository whatsappClickRepository;
     @Mock private CurrentStoreResolver currentStoreResolver;
@@ -66,7 +68,7 @@ class ProductServiceImplTest {
 
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
-        when(attributeValidator.validateForCreate(any(), any())).thenReturn(java.util.Map.of());
+        when(attributeValidator.validateForCreate(any(), any(), any())).thenReturn(java.util.Map.of());
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, null);
@@ -80,7 +82,7 @@ class ProductServiceImplTest {
 
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
-        when(attributeValidator.validateForCreate(any(), any())).thenReturn(java.util.Map.of());
+        when(attributeValidator.validateForCreate(any(), any(), any())).thenReturn(java.util.Map.of());
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, null);
@@ -112,13 +114,53 @@ class ProductServiceImplTest {
 
         when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
         when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
-        when(attributeValidator.validateForCreate(any(), any())).thenReturn(java.util.Map.of());
+        when(attributeValidator.validateForCreate(any(), any(), any())).thenReturn(java.util.Map.of());
         when(storageService.uploadFile(image)).thenReturn("http://minio/test.png");
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.save(request, java.util.List.of(image));
 
         assertThat(result.getImageUrls()).containsExactly("http://minio/test.png");
+    }
+
+    @Test
+    void save_withProductType_ownedByStore_setsProductType() {
+        ProductCreateRequest request = buildCreateRequest();
+        request.setProductTypeId(50L);
+
+        com.store.vitrine3d.domain.model.ProductType camisa = new com.store.vitrine3d.domain.model.ProductType();
+        camisa.setId(50L);
+        camisa.setStore(ownerStore);
+
+        when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
+        when(productTypeRepository.findById(50L)).thenReturn(Optional.of(camisa));
+        when(attributeValidator.validateForCreate(any(), eq(50L), any())).thenReturn(java.util.Map.of());
+        when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Product result = productService.save(request, null);
+
+        assertThat(result.getProductType()).isSameAs(camisa);
+    }
+
+    @Test
+    void save_withProductTypeFromAnotherStore_throwsAccessDenied() {
+        ProductCreateRequest request = buildCreateRequest();
+        request.setProductTypeId(50L);
+
+        Store otherStore = new Store();
+        otherStore.setId(UUID.randomUUID());
+        com.store.vitrine3d.domain.model.ProductType camisa = new com.store.vitrine3d.domain.model.ProductType();
+        camisa.setId(50L);
+        camisa.setStore(otherStore);
+
+        when(storeRepository.findById(STORE_ID)).thenReturn(Optional.of(ownerStore));
+        when(currentStoreResolver.getCurrentStore()).thenReturn(ownerStore);
+        when(productTypeRepository.findById(50L)).thenReturn(Optional.of(camisa));
+
+        assertThatThrownBy(() -> productService.save(request, null))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(productRepository, never()).save(any());
     }
 
     @Test

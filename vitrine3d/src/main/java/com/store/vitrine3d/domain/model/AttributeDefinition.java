@@ -7,22 +7,25 @@ import java.util.List;
 
 @Entity
 @Table(name = "attribute_definitions",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"business_type_id", "store_id", "attribute_key"}))
+        uniqueConstraints = @UniqueConstraint(
+                columnNames = {"store_id", "product_type_id", "attribute_key"}))
 public class AttributeDefinition {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Todo atributo pertence a uma loja — nao existe mais atributo global/compartilhado
+    // entre lojas (esse papel era do BusinessType, que virou so um rotulo de tracking).
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "business_type_id", nullable = false)
-    private BusinessType businessType;
-
-    // Nulo = atributo global da vertical (criado via seed). Preenchido = atributo
-    // customizado, visivel/usavel so por essa loja.
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_id")
+    @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    // Nulo = aplica a todos os produtos da loja. Preenchido = so aplica a produtos
+    // daquele ProductType especifico.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id")
+    private ProductType productType;
 
     @Column(name = "attribute_key", nullable = false)
     private String key;
@@ -56,11 +59,11 @@ public class AttributeDefinition {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public BusinessType getBusinessType() { return businessType; }
-    public void setBusinessType(BusinessType businessType) { this.businessType = businessType; }
-
     public Store getStore() { return store; }
     public void setStore(Store store) { this.store = store; }
+
+    public ProductType getProductType() { return productType; }
+    public void setProductType(ProductType productType) { this.productType = productType; }
 
     public String getKey() { return key; }
     public void setKey(String key) { this.key = key; }

@@ -2,12 +2,11 @@ package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.AttributeDefinition;
 import com.store.vitrine3d.domain.model.AttributeType;
-import com.store.vitrine3d.domain.model.BusinessType;
+import com.store.vitrine3d.domain.model.ProductType;
 import com.store.vitrine3d.domain.model.Store;
-import com.store.vitrine3d.domain.model.StoreAttributeOption;
 import com.store.vitrine3d.domain.repository.AttributeDefinitionRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
-import com.store.vitrine3d.domain.repository.StoreAttributeOptionRepository;
+import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.service.CurrentStoreResolver;
 import com.store.vitrine3d.domain.specification.ProductSpec;
@@ -23,69 +22,50 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Gerencia atributos customizados por loja (criacao/exclusao) e o opt-out de atributos
- * globais (esconder sem apagar). A validacao/filtro de produto continuam em
- * ProductAttributeValidator/ProductAttributeFilterBuilder, que passam a enxergar o
- * resultado dessas operacoes via AttributeDefinitionRepository.findEffectiveForStore.
+ * Gerencia atributos customizados por loja (criacao/exclusao/cadastro de valor de opcao).
+ * Todo atributo pertence exclusivamente a uma loja — nao existe mais atributo global
+ * compartilhado entre lojas. A validacao/filtro de produto continuam em
+ * ProductAttributeValidator/ProductAttributeFilterBuilder, que enxergam o resultado dessas
+ * operacoes via AttributeDefinitionRepository.findEffectiveForStore.
  */
 @Service
 @Transactional
 public class StoreAttributeDefinitionService {
 
     private final AttributeDefinitionRepository attributeDefinitionRepository;
-    private final StoreAttributeOptionRepository storeAttributeOptionRepository;
     private final ProductRepository productRepository;
+    private final ProductTypeRepository productTypeRepository;
     private final StoreRepository storeRepository;
     private final CurrentStoreResolver currentStoreResolver;
-    private final EffectiveAttributeDefinitionResolver effectiveAttributeDefinitionResolver;
 
     public StoreAttributeDefinitionService(AttributeDefinitionRepository attributeDefinitionRepository,
-                                            StoreAttributeOptionRepository storeAttributeOptionRepository,
                                             ProductRepository productRepository,
+                                            ProductTypeRepository productTypeRepository,
                                             StoreRepository storeRepository,
-                                            CurrentStoreResolver currentStoreResolver,
-                                            EffectiveAttributeDefinitionResolver effectiveAttributeDefinitionResolver) {
+                                            CurrentStoreResolver currentStoreResolver) {
         this.attributeDefinitionRepository = attributeDefinitionRepository;
-        this.storeAttributeOptionRepository = storeAttributeOptionRepository;
         this.productRepository = productRepository;
+        this.productTypeRepository = productTypeRepository;
         this.storeRepository = storeRepository;
         this.currentStoreResolver = currentStoreResolver;
-        this.effectiveAttributeDefinitionResolver = effectiveAttributeDefinitionResolver;
     }
 
     /** Publico — usado tanto pelo formulario de produto do lojista quanto pelo filtro da vitrine. */
     @Transactional(readOnly = true)
-    public List<AttributeDefinition> listEffective(UUID storeId) {
-        Store store = findStore(storeId);
-        BusinessType businessType = store.getBusinessType();
-        if (businessType == null) {
-            return List.of();
-        }
-        return attributeDefinitionRepository.findEffectiveForStore(businessType.getId(), store.getId()).stream()
-                .filter(definition -> !store.getHiddenAttributeDefinitionIds().contains(definition.getId()))
-                .map(definition -> effectiveAttributeDefinitionResolver.withEffectiveOptions(store, definition))
-                .toList();
+    public List<AttributeDefinition> listEffective(UUID storeId, Long productTypeId) {
+        return attributeDefinitionRepository.findEffectiveForStore(storeId, productTypeId);
     }
 
-    /** Cadastra um valor de opcao pra um atributo ENUM (global da vertical ou custom da propria loja). */
+    /** Cadastra um valor de opcao pra um atributo ENUM da propria loja. */
     public AttributeDefinition addOption(UUID storeId, Long attributeDefinitionId, String value) {
         Store store = findStore(storeId);
         assertStoreOwnership(store);
 
-        AttributeDefinition definition = attributeDefinitionRepository.findById(attributeDefinitionId)
-                .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", attributeDefinitionId));
+        AttributeDefinition definition = requireOwnAttribute(store, attributeDefinitionId);
 
         if (definition.getType() != AttributeType.ENUM) {
             throw new BusinessRuleException("NOT_ENUM_ATTRIBUTE",
                     "Only ENUM attributes accept registered option values.");
-        }
-
-        boolean isOwnCustom = definition.getStore() != null && definition.getStore().getId().equals(store.getId());
-        boolean isGlobalForBusinessType = definition.getStore() == null
-                && store.getBusinessType() != null
-                && definition.getBusinessType().getId().equals(store.getBusinessType().getId());
-        if (!isOwnCustom && !isGlobalForBusinessType) {
-            throw new AccessDeniedException("This attribute is not available to your store.");
         }
 
         String trimmed = value != null ? value.trim() : "";
@@ -93,57 +73,35 @@ public class StoreAttributeDefinitionService {
             throw new BusinessRuleException("INVALID_OPTION_VALUE", "Option value must not be blank.");
         }
 
-        if (isOwnCustom) {
-            if (definition.getEnumOptions().contains(trimmed)) {
-                throw new BusinessRuleException("OPTION_ALREADY_EXISTS",
-                        "Option '" + trimmed + "' already exists for this attribute.");
-            }
-            definition.getEnumOptions().add(trimmed);
-            attributeDefinitionRepository.save(definition);
-        } else {
-            if (storeAttributeOptionRepository.existsByStoreIdAndAttributeDefinitionIdAndValue(
-                    store.getId(), definition.getId(), trimmed)) {
-                throw new BusinessRuleException("OPTION_ALREADY_EXISTS",
-                        "Option '" + trimmed + "' already exists for this attribute.");
-            }
-            int nextOrder = (int) storeAttributeOptionRepository
-                    .countByStoreIdAndAttributeDefinitionId(store.getId(), definition.getId());
-            StoreAttributeOption option = new StoreAttributeOption();
-            option.setStore(store);
-            option.setAttributeDefinition(definition);
-            option.setValue(trimmed);
-            option.setSortOrder(nextOrder);
-            storeAttributeOptionRepository.save(option);
+        if (definition.getEnumOptions().contains(trimmed)) {
+            throw new BusinessRuleException("OPTION_ALREADY_EXISTS",
+                    "Option '" + trimmed + "' already exists for this attribute.");
         }
-
-        return effectiveAttributeDefinitionResolver.withEffectiveOptions(store, definition);
+        definition.getEnumOptions().add(trimmed);
+        return attributeDefinitionRepository.save(definition);
     }
 
     public AttributeDefinition createCustom(UUID storeId, AttributeDefinitionCreateRequest request) {
         Store store = findStore(storeId);
         assertStoreOwnership(store);
 
-        BusinessType businessType = store.getBusinessType();
-        if (businessType == null) {
-            throw new BusinessRuleException("BUSINESS_TYPE_REQUIRED",
-                    "Store must have a business type before creating custom attributes.");
+        ProductType productType = null;
+        if (request.getProductTypeId() != null) {
+            productType = productTypeRepository.findById(request.getProductTypeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ProductType", request.getProductTypeId()));
+            if (!productType.getStore().getId().equals(store.getId())) {
+                throw new AccessDeniedException("This product type does not belong to your store.");
+            }
         }
 
-        List<AttributeDefinition> effective = attributeDefinitionRepository
-                .findEffectiveForStore(businessType.getId(), store.getId());
-        boolean keyTaken = effective.stream().anyMatch(d -> d.getKey().equals(request.getKey()));
-        if (keyTaken) {
-            throw new BusinessRuleException("ATTRIBUTE_KEY_TAKEN",
-                    "Attribute key '" + request.getKey() + "' is already in use for this business type.");
-        }
+        assertKeyAvailable(store, productType, request.getKey());
 
         AttributeDefinition definition = new AttributeDefinition();
-        definition.setBusinessType(businessType);
         definition.setStore(store);
+        definition.setProductType(productType);
         definition.setKey(request.getKey());
         definition.setLabel(request.getLabel());
-        definition.setType(request.getType());
-        definition.setUnit(request.getUnit());
+        definition.setType(AttributeType.ENUM);
         definition.setRequired(Boolean.TRUE.equals(request.getRequired()));
         definition.setFilterable(request.getFilterable() == null || request.getFilterable());
         definition.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 100);
@@ -153,11 +111,32 @@ public class StoreAttributeDefinitionService {
         return attributeDefinitionRepository.save(definition);
     }
 
+    /**
+     * Um atributo escopado a um ProductType colide com atributos gerais da loja (co-resolvem
+     * juntos pra qualquer produto daquele tipo) ou outro ja escopado ao mesmo tipo. Um
+     * atributo geral colide com QUALQUER atributo que a loja ja tenha — geral ou escopado a
+     * qualquer tipo — porque um atributo geral co-resolve com todos os ProductTypes da loja.
+     */
+    private void assertKeyAvailable(Store store, ProductType productType, String key) {
+        Long productTypeId = productType != null ? productType.getId() : null;
+        List<AttributeDefinition> candidates = new ArrayList<>(
+                attributeDefinitionRepository.findEffectiveForStore(store.getId(), productTypeId));
+        if (productType == null) {
+            candidates.addAll(attributeDefinitionRepository.findByStoreId(store.getId()));
+        }
+
+        boolean keyTaken = candidates.stream().anyMatch(d -> d.getKey().equals(key));
+        if (keyTaken) {
+            throw new BusinessRuleException("ATTRIBUTE_KEY_TAKEN",
+                    "Attribute key '" + key + "' is already in use for this store.");
+        }
+    }
+
     public void deleteCustom(UUID storeId, Long attributeDefinitionId) {
         Store store = findStore(storeId);
         assertStoreOwnership(store);
 
-        AttributeDefinition definition = requireOwnCustomAttribute(store, attributeDefinitionId);
+        AttributeDefinition definition = requireOwnAttribute(store, attributeDefinitionId);
 
         boolean inUse = productRepository.exists(
                 ProductSpec.fromStore(store.getId()).and(ProductSpec.hasAttributeKey(definition.getKey())));
@@ -168,24 +147,6 @@ public class StoreAttributeDefinitionService {
         }
 
         attributeDefinitionRepository.delete(definition);
-    }
-
-    public void hideGlobal(UUID storeId, Long attributeDefinitionId) {
-        Store store = findStore(storeId);
-        assertStoreOwnership(store);
-
-        AttributeDefinition definition = requireOwnGlobalAttribute(store, attributeDefinitionId);
-        store.getHiddenAttributeDefinitionIds().add(definition.getId());
-        storeRepository.save(store);
-    }
-
-    public void unhideGlobal(UUID storeId, Long attributeDefinitionId) {
-        Store store = findStore(storeId);
-        assertStoreOwnership(store);
-
-        AttributeDefinition definition = requireOwnGlobalAttribute(store, attributeDefinitionId);
-        store.getHiddenAttributeDefinitionIds().remove(definition.getId());
-        storeRepository.save(store);
     }
 
     private Store findStore(UUID storeId) {
@@ -200,25 +161,11 @@ public class StoreAttributeDefinitionService {
         }
     }
 
-    private AttributeDefinition requireOwnCustomAttribute(Store store, Long attributeDefinitionId) {
+    private AttributeDefinition requireOwnAttribute(Store store, Long attributeDefinitionId) {
         AttributeDefinition definition = attributeDefinitionRepository.findById(attributeDefinitionId)
                 .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", attributeDefinitionId));
-        if (definition.getStore() == null || !definition.getStore().getId().equals(store.getId())) {
-            throw new AccessDeniedException("You can only manage your own custom attributes.");
-        }
-        return definition;
-    }
-
-    private AttributeDefinition requireOwnGlobalAttribute(Store store, Long attributeDefinitionId) {
-        AttributeDefinition definition = attributeDefinitionRepository.findById(attributeDefinitionId)
-                .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", attributeDefinitionId));
-        if (definition.getStore() != null) {
-            throw new BusinessRuleException("NOT_A_GLOBAL_ATTRIBUTE",
-                    "Only global attributes can be hidden — delete your own custom attributes instead.");
-        }
-        BusinessType storeBusinessType = store.getBusinessType();
-        if (storeBusinessType == null || !definition.getBusinessType().getId().equals(storeBusinessType.getId())) {
-            throw new AccessDeniedException("This attribute does not belong to your business type.");
+        if (!definition.getStore().getId().equals(store.getId())) {
+            throw new AccessDeniedException("You can only manage your own attributes.");
         }
         return definition;
     }

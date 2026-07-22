@@ -52,6 +52,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/products/store/*/search").permitAll()
                 // Atributos efetivos da loja (globais nao escondidos + customizados) — leitura pública
                 .requestMatchers(HttpMethod.GET, "/api/products/store/*/attributes").permitAll()
+                // Tipos de produto criados pela loja (ex.: "Camisa") — leitura pública
+                .requestMatchers(HttpMethod.GET, "/api/products/store/*/product-types").permitAll()
                 // Health check e versão em execução
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/version").permitAll()

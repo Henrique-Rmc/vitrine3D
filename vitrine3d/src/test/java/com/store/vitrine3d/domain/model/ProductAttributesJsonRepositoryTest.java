@@ -1,6 +1,7 @@
 package com.store.vitrine3d.domain.model;
 
 import com.store.vitrine3d.domain.repository.ProductRepository;
+import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ class ProductAttributesJsonRepositoryTest {
 
     @Autowired private ProductRepository productRepository;
     @Autowired private StoreRepository storeRepository;
+    @Autowired private ProductTypeRepository productTypeRepository;
 
     @Test
     void savesAndReloadsJsonAttributes() {
@@ -44,9 +46,16 @@ class ProductAttributesJsonRepositoryTest {
         store.setWhatsappNumber("5511999999999");
         store = storeRepository.save(store);
 
+        ProductType productType = new ProductType();
+        productType.setStore(store);
+        productType.setKey("geral");
+        productType.setLabel("Geral");
+        productType = productTypeRepository.save(productType);
+
         Product product = new Product();
         product.setName(name);
         product.setStore(store);
+        product.setProductType(productType);
         product.setAttributes(attributes);
         return productRepository.save(product);
     }

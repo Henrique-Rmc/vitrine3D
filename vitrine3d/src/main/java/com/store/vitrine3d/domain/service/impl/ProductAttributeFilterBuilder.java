@@ -1,15 +1,11 @@
 package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.AttributeDefinition;
-import com.store.vitrine3d.domain.model.BusinessType;
 import com.store.vitrine3d.domain.model.Product;
-import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.repository.AttributeDefinitionRepository;
-import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.service.AttributeTypeHandler;
 import com.store.vitrine3d.domain.service.AttributeTypeHandlerRegistry;
 import com.store.vitrine3d.rest.exception.BusinessRuleException;
-import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
@@ -33,33 +29,22 @@ public class ProductAttributeFilterBuilder {
     private static final String MIN_SUFFIX = "_min";
     private static final String MAX_SUFFIX = "_max";
 
-    private final StoreRepository storeRepository;
     private final AttributeDefinitionRepository attributeDefinitionRepository;
     private final AttributeTypeHandlerRegistry handlerRegistry;
 
-    public ProductAttributeFilterBuilder(StoreRepository storeRepository,
-                                          AttributeDefinitionRepository attributeDefinitionRepository,
+    public ProductAttributeFilterBuilder(AttributeDefinitionRepository attributeDefinitionRepository,
                                           AttributeTypeHandlerRegistry handlerRegistry) {
-        this.storeRepository = storeRepository;
         this.attributeDefinitionRepository = attributeDefinitionRepository;
         this.handlerRegistry = handlerRegistry;
     }
 
-    public List<Specification<Product>> build(UUID storeId, Map<String, String> rawFilters) {
+    public List<Specification<Product>> build(UUID storeId, Long productTypeId, Map<String, String> rawFilters) {
         if (rawFilters == null || rawFilters.isEmpty()) {
             return List.of();
         }
 
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
-        BusinessType businessType = store.getBusinessType();
-        if (businessType == null) {
-            throw new BusinessRuleException("BUSINESS_TYPE_REQUIRED",
-                    "This store has no business type; attribute filters are not available.");
-        }
-
         Map<String, AttributeDefinition> definitionsByKey = attributeDefinitionRepository
-                .findEffectiveForStore(businessType.getId(), store.getId()).stream()
+                .findEffectiveForStore(storeId, productTypeId).stream()
                 .collect(Collectors.toMap(AttributeDefinition::getKey, Function.identity()));
 
         List<Specification<Product>> specs = new ArrayList<>();
@@ -75,7 +60,7 @@ public class ProductAttributeFilterBuilder {
                     : isMax ? stripSuffix(entry.getKey(), MAX_SUFFIX)
                     : entry.getKey();
 
-            AttributeDefinition definition = requireFilterableDefinition(definitionsByKey, businessType, baseKey);
+            AttributeDefinition definition = requireFilterableDefinition(definitionsByKey, baseKey);
 
             if (isMin || isMax) {
                 String[] minMax = ranges.computeIfAbsent(baseKey, k -> new String[2]);
@@ -95,12 +80,10 @@ public class ProductAttributeFilterBuilder {
         return specs;
     }
 
-    private AttributeDefinition requireFilterableDefinition(Map<String, AttributeDefinition> definitionsByKey,
-                                                              BusinessType businessType, String key) {
+    private AttributeDefinition requireFilterableDefinition(Map<String, AttributeDefinition> definitionsByKey, String key) {
         AttributeDefinition definition = definitionsByKey.get(key);
         if (definition == null) {
-            throw new BusinessRuleException("UNKNOWN_ATTRIBUTE",
-                    "Attribute '" + key + "' is not defined for business type '" + businessType.getName() + "'.");
+            throw new BusinessRuleException("UNKNOWN_ATTRIBUTE", "Attribute '" + key + "' is not defined for this store.");
         }
         if (!Boolean.TRUE.equals(definition.getFilterable())) {
             throw new BusinessRuleException("ATTRIBUTE_NOT_FILTERABLE",

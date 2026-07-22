@@ -1,9 +1,11 @@
 package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.Product;
+import com.store.vitrine3d.domain.model.ProductType;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.WhatsappClick;
 import com.store.vitrine3d.domain.repository.ProductRepository;
+import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
 import com.store.vitrine3d.domain.service.CurrentStoreResolver;
@@ -39,6 +41,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final StoreRepository storeRepository;
+    private final ProductTypeRepository productTypeRepository;
     private final StorageService storageService;
     private final WhatsappClickRepository whatsappClickRepository;
     private final CurrentStoreResolver currentStoreResolver;
@@ -47,6 +50,7 @@ public class ProductServiceImpl implements ProductService {
 
     public ProductServiceImpl(ProductRepository productRepository,
                                StoreRepository storeRepository,
+                               ProductTypeRepository productTypeRepository,
                                StorageService storageService,
                                WhatsappClickRepository whatsappClickRepository,
                                CurrentStoreResolver currentStoreResolver,
@@ -54,6 +58,7 @@ public class ProductServiceImpl implements ProductService {
                                ProductAttributeFilterBuilder attributeFilterBuilder) {
         this.productRepository = productRepository;
         this.storeRepository = storeRepository;
+        this.productTypeRepository = productTypeRepository;
         this.storageService = storageService;
         this.whatsappClickRepository = whatsappClickRepository;
         this.currentStoreResolver = currentStoreResolver;
@@ -68,6 +73,8 @@ public class ProductServiceImpl implements ProductService {
 
         assertStoreOwnership(store);
 
+        ProductType productType = resolveProductType(store, request.getProductTypeId());
+
         List<String> imageUrls = hasFiles(images) ? uploadImages(images) : nonNullList(request.getImageUrls());
 
         Product product = new Product();
@@ -77,7 +84,9 @@ public class ProductServiceImpl implements ProductService {
         product.setImageUrls(imageUrls);
         product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : Boolean.TRUE);
         product.setStore(store);
-        product.setAttributes(attributeValidator.validateForCreate(store, request.getAttributes()));
+        product.setProductType(productType);
+        product.setAttributes(attributeValidator.validateForCreate(
+                store, productType != null ? productType.getId() : null, request.getAttributes()));
 
         return productRepository.save(product);
     }
@@ -93,15 +102,32 @@ public class ProductServiceImpl implements ProductService {
         if (request.getFeatured() != null) applyFeatured(product, request.getFeatured());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
 
+        if (request.getProductTypeId() != null) {
+            product.setProductType(resolveProductType(product.getStore(), request.getProductTypeId()));
+        }
+
         if (hasFiles(images)) {
             product.setImageUrls(uploadImages(images));
         }
         if (request.getAttributes() != null) {
+            Long productTypeId = product.getProductType() != null ? product.getProductType().getId() : null;
             product.setAttributes(attributeValidator.validateForUpdate(
-                    product.getStore(), product.getAttributes(), request.getAttributes()));
+                    product.getStore(), productTypeId, product.getAttributes(), request.getAttributes()));
         }
 
         return productRepository.save(product);
+    }
+
+    private ProductType resolveProductType(Store store, Long productTypeId) {
+        if (productTypeId == null) {
+            return null;
+        }
+        ProductType productType = productTypeRepository.findById(productTypeId)
+                .orElseThrow(() -> new ResourceNotFoundException("ProductType", productTypeId));
+        if (!productType.getStore().getId().equals(store.getId())) {
+            throw new AccessDeniedException("This product type does not belong to your store.");
+        }
+        return productType;
     }
 
     private boolean hasFiles(List<MultipartFile> images) {
@@ -168,9 +194,11 @@ public class ProductServiceImpl implements ProductService {
                 .and(ProductSpec.storeIsActive())
                 .and(filter.getKeyword() != null ? ProductSpec.nameContains(filter.getKeyword()) : null)
                 .and(filter.getMinPrice() != null ? ProductSpec.minPrice(filter.getMinPrice()) : null)
-                .and(filter.getMaxPrice() != null ? ProductSpec.maxPrice(filter.getMaxPrice()) : null);
+                .and(filter.getMaxPrice() != null ? ProductSpec.maxPrice(filter.getMaxPrice()) : null)
+                .and(filter.getProductTypeId() != null ? ProductSpec.hasProductType(filter.getProductTypeId()) : null);
 
-        for (Specification<Product> attributeSpec : attributeFilterBuilder.build(storeId, filter.getAttributes())) {
+        for (Specification<Product> attributeSpec
+                : attributeFilterBuilder.build(storeId, filter.getProductTypeId(), filter.getAttributes())) {
             spec = spec.and(attributeSpec);
         }
 

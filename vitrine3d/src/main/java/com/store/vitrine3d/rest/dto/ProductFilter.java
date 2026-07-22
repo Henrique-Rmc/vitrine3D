@@ -19,6 +19,9 @@ public class ProductFilter {
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
 
+    /** Filtra por sub-categoria criada pela loja (ex.: "Camisa") — tambem define o contexto pra validar as chaves de "attributes" abaixo. */
+    private Long productTypeId;
+
     /**
      * Filtros dinamicos por atributo do tipo de negocio da loja. Chave igual ao
      * AttributeDefinition.key para igualdade (ex.: "marca") ou com sufixo "_min"/"_max"

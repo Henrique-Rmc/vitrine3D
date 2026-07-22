@@ -49,6 +49,7 @@ class ProductCreationIntegrationTest {
 
     private String jwtToken;
     private UUID storeId;
+    private Long productTypeId;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -84,6 +85,21 @@ class ProductCreationIntegrationTest {
 
         jwtToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
                 .get("accessToken").asText();
+
+        // 3 — cria um ProductType (obrigatorio pra cadastrar produto)
+        String productTypeBody = """
+                {"key":"geral","label":"Geral"}
+                """;
+
+        MvcResult productTypeResult = mockMvc.perform(post("/api/products/store/" + storeId + "/product-types")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + jwtToken)
+                        .content(productTypeBody))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        productTypeId = objectMapper.readTree(productTypeResult.getResponse().getContentAsString())
+                .get("id").asLong();
     }
 
     @Test
@@ -92,6 +108,7 @@ class ProductCreationIntegrationTest {
         productRequest.setName("Goku SSJ4");
         productRequest.setDescription("Figura articulada em resina");
         productRequest.setStoreId(storeId);
+        productRequest.setProductTypeId(productTypeId);
 
         MockMultipartFile dataPart = new MockMultipartFile(
                 "data", "", MediaType.APPLICATION_JSON_VALUE,

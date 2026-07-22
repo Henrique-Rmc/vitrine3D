@@ -36,4 +36,7 @@ public class ProductCreateRequest {
 
     /** Atributos dinamicos do tipo de negocio da loja (ex.: marca, ano, kilometragem). */
     private Map<String, Object> attributes;
+
+    @NotNull(message = "Product type is required")
+    private Long productTypeId;
 }
