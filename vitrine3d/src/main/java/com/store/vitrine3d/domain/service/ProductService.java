@@ -24,4 +24,6 @@ public interface ProductService {
     void reorder(List<Long> productIds);
     long registerWhatsappClick(Long productId);
     long getClickCount(Long productId);
+    long registerAffiliateClick(Long productId);
+    long getAffiliateClickCount(Long productId);
 }

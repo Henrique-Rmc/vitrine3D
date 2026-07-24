@@ -1,6 +1,7 @@
 package com.store.vitrine3d.rest.dto;
 
 import com.store.vitrine3d.domain.model.Product;
+import com.store.vitrine3d.domain.model.StoreProfileType;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -23,17 +24,21 @@ public class ProductResponse {
     private Boolean featured;
     private BigDecimal price;
     private UUID storeId;
+    /** Null para lojas AFFILIATE — use affiliateUrl + POST affiliate-click nesse caso. */
     private String whatsappUrl;
     private long clickCount;
+    /** Null para lojas STANDARD. */
+    private String affiliateUrl;
+    private long affiliateClickCount;
     private Map<String, Object> attributes;
     private Long productTypeId;
     private String productTypeLabel;
 
     public static ProductResponse from(Product product) {
-        return from(product, 0L);
+        return from(product, 0L, 0L);
     }
 
-    public static ProductResponse from(Product product, long clickCount) {
+    public static ProductResponse from(Product product, long clickCount, long affiliateClickCount) {
         ProductResponse dto = new ProductResponse();
         dto.setId(product.getId());
         dto.setName(product.getName());
@@ -46,6 +51,8 @@ public class ProductResponse {
         dto.setStoreId(product.getStore().getId());
         dto.setWhatsappUrl(buildWhatsappUrl(product));
         dto.setClickCount(clickCount);
+        dto.setAffiliateUrl(product.getAffiliateUrl());
+        dto.setAffiliateClickCount(affiliateClickCount);
         dto.setAttributes(product.getAttributes());
         if (product.getProductType() != null) {
             dto.setProductTypeId(product.getProductType().getId());
@@ -55,8 +62,11 @@ public class ProductResponse {
     }
 
     private static String buildWhatsappUrl(Product product) {
-        String number = product.getStore().getWhatsappNumber().replaceAll("[^0-9]", "");
+        if (product.getStore().getProfileType() == StoreProfileType.AFFILIATE) return null;
+        String number = product.getStore().getWhatsappNumber();
+        if (number == null || number.isBlank()) return null;
+        String digits = number.replaceAll("[^0-9]", "");
         String text = "Olá, vi o produto *" + product.getName() + "* na sua vitrine e gostaria de mais informações!";
-        return "https://wa.me/" + number + "?text=" + URLEncoder.encode(text, StandardCharsets.UTF_8);
+        return "https://wa.me/" + digits + "?text=" + URLEncoder.encode(text, StandardCharsets.UTF_8);
     }
 }

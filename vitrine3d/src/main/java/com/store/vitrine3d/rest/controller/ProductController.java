@@ -103,6 +103,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.registerWhatsappClick(id));
     }
 
+    @Operation(summary = "Registra clique no link de afiliado e retorna total de cliques (apenas lojas AFFILIATE)")
+    @PostMapping("/{id}/affiliate-click")
+    public ResponseEntity<Long> registerAffiliateClick(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.registerAffiliateClick(id));
+    }
+
     @Operation(summary = "Lista produtos visíveis de uma loja — vitrine pública (paginado, 15/página)")
     @GetMapping("/store/{storeId}/public")
     public PageResponse<ProductResponse> listPublic(
@@ -145,11 +151,13 @@ public class ProductController {
                 ProductResponse::from);
     }
 
-    @Operation(summary = "Busca produto por ID (inclui total de cliques no WhatsApp)")
+    @Operation(summary = "Busca produto por ID (inclui contadores de cliques)")
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         var product = productService.findById(id);
-        return ResponseEntity.ok(ProductResponse.from(product, productService.getClickCount(id)));
+        return ResponseEntity.ok(ProductResponse.from(product,
+                productService.getClickCount(id),
+                productService.getAffiliateClickCount(id)));
     }
 
     @Operation(

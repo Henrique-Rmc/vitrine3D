@@ -57,7 +57,8 @@ class UserRegistrationIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("integration@vitrine3d.com"))
-                .andExpect(jsonPath("$.slug").value("integration-store"));
+                .andExpect(jsonPath("$.role").value("STORE_OWNER"))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
 
         var saved = storeRepository.findByEmail("integration@vitrine3d.com");
         assertTrue(saved.isPresent(), "Store must be persisted in the database");

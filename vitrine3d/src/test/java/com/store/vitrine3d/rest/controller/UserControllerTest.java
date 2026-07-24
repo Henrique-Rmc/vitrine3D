@@ -3,7 +3,11 @@ package com.store.vitrine3d.rest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.repository.StoreRepository;
+import com.store.vitrine3d.domain.service.CurrentStoreResolver;
+import com.store.vitrine3d.domain.service.RefreshTokenService;
 import com.store.vitrine3d.domain.service.UserService;
+import com.store.vitrine3d.domain.service.impl.StoreAttributeDefinitionService;
+import com.store.vitrine3d.domain.service.impl.SubscriptionService;
 import com.store.vitrine3d.infrastructure.security.JwtTokenProvider;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
 import com.store.vitrine3d.rest.exception.GlobalExceptionHandler;
@@ -12,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -52,6 +57,18 @@ class UserControllerTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private SubscriptionService subscriptionService;
+
+    @MockitoBean
+    private RefreshTokenService refreshTokenService;
+
+    @MockitoBean
+    private StoreAttributeDefinitionService attributeService;
+
+    @MockitoBean
+    private CurrentStoreResolver currentStoreResolver;
+
     private static final UUID STORE_UUID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
     private Store buildMockStore() {
@@ -79,15 +96,20 @@ class UserControllerTest {
     @Test
     void whenRegisterWithValidData_thenReturns201() throws Exception {
         when(userService.register(any(StoreRegisterRequest.class))).thenReturn(buildMockStore());
+        when(jwtTokenProvider.generateToken("loja@teste.com")).thenReturn("fake-jwt-token");
+        when(refreshTokenService.createFor(any(Store.class))).thenReturn("fake-raw-refresh-token");
+        when(refreshTokenService.buildCookie(any())).thenReturn(
+                ResponseCookie.from("refresh_token", "fake-raw-refresh-token").build());
 
         mockMvc.perform(post("/api/users/register")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildValidRequest())))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(STORE_UUID.toString()))
+                .andExpect(jsonPath("$.storeId").value(STORE_UUID.toString()))
                 .andExpect(jsonPath("$.email").value("loja@teste.com"))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.accessToken").value("fake-jwt-token"))
+                .andExpect(jsonPath("$.role").value("STORE_OWNER"));
     }
 
     @Test

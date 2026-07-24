@@ -1,6 +1,8 @@
 package com.store.vitrine3d.infrastructure.security;
 
+import com.store.vitrine3d.domain.model.AdminUser;
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.domain.repository.AdminUserRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -14,25 +16,29 @@ import java.util.List;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
+    private final AdminUserRepository adminUserRepository;
     private final StoreRepository storeRepository;
 
-    public UserDetailsServiceImpl(StoreRepository storeRepository) {
+    public UserDetailsServiceImpl(AdminUserRepository adminUserRepository,
+                                  StoreRepository storeRepository) {
+        this.adminUserRepository = adminUserRepository;
         this.storeRepository = storeRepository;
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Store store = storeRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
+        AdminUser admin = adminUserRepository.findByEmail(email).orElse(null);
+        if (admin != null) {
+            return new User(admin.getEmail(), admin.getPassword(),
+                    admin.isActive(), true, true, true,
+                    List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        }
 
-        return new User(
-                store.getEmail(),
-                store.getPassword(),
-                Boolean.TRUE.equals(store.getIsActive()), // enabled → isEnabled()
-                true,                                      // accountNonExpired
-                true,                                      // credentialsNonExpired
-                true,                                      // accountNonLocked
-                List.of(new SimpleGrantedAuthority("ROLE_STORE_OWNER"))
-        );
+        Store store = storeRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+
+        return new User(store.getEmail(), store.getPassword(),
+                Boolean.TRUE.equals(store.getIsActive()), true, true, true,
+                List.of(new SimpleGrantedAuthority("ROLE_STORE_OWNER")));
     }
 }

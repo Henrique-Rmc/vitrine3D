@@ -40,12 +40,16 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(String email) {
+        return generateToken(email, props.getExpiration());
+    }
+
+    public String generateToken(String email, long expirationMs) {
         Date now = new Date();
         return Jwts.builder()
                 .issuer(ISSUER)
                 .subject(email)
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + props.getExpiration()))
+                .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(signingKey)
                 .compact();
     }

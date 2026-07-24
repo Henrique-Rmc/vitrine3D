@@ -39,4 +39,8 @@ public class ProductCreateRequest {
 
     @NotNull(message = "Product type is required")
     private Long productTypeId;
+
+    /** Obrigatório para lojas com perfil AFFILIATE. Deve começar com "https://". */
+    @Size(max = 2048, message = "Affiliate URL must not exceed 2048 characters")
+    private String affiliateUrl;
 }

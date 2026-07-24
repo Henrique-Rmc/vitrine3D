@@ -1,6 +1,8 @@
 package com.store.vitrine3d.rest.dto;
 
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.domain.model.StoreProfileType;
+import com.store.vitrine3d.domain.model.Subscription;
 import lombok.Data;
 
 import java.util.List;
@@ -27,17 +29,27 @@ public class StoreResponse {
     private String slug;
     private Long businessTypeId;
     private String businessTypeName;
+    private StoreProfileType profileType;
+    private boolean emailVerified;
+    private SubscriptionResponse subscription;
 
     // Resposta completa — para o próprio lojista autenticado
-    public static StoreResponse from(Store store) {
+    public static StoreResponse from(Store store, Subscription sub) {
         StoreResponse dto = baseFields(store);
         dto.setEmail(store.getEmail());
         dto.setUserName(store.getUserName());
         dto.setIsActive(store.getIsActive());
+        dto.setEmailVerified(store.isEmailVerified());
+        dto.setSubscription(SubscriptionResponse.from(sub));
         return dto;
     }
 
-    // Resposta pública — sem dados pessoais (email, userName, isActive)
+    // Mantido para retrocompatibilidade — sem subscription
+    public static StoreResponse from(Store store) {
+        return from(store, null);
+    }
+
+    // Resposta pública — sem dados pessoais (email, userName, isActive, role, subscription)
     public static StoreResponse fromPublic(Store store) {
         return baseFields(store);
     }
@@ -67,6 +79,7 @@ public class StoreResponse {
             dto.setBusinessTypeName(store.getBusinessType().getName());
         }
 
+        dto.setProfileType(store.getProfileType());
         return dto;
     }
 }

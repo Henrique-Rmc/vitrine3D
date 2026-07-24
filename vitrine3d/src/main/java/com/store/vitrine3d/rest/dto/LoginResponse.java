@@ -10,14 +10,19 @@ import java.util.UUID;
 public class LoginResponse {
     private String accessToken;
     private String type = "Bearer";
-    private UUID storeId;
+    /** STORE_OWNER or ADMIN */
+    private String role;
     private String email;
-    private String storeName;
+    /** Display name: storeName for stores, adminUser.name for admins */
+    private String name;
+    /** Null for admin users */
+    private UUID storeId;
 
-    public LoginResponse(String accessToken, UUID storeId, String email, String storeName) {
+    public LoginResponse(String accessToken, String role, String email, String name, UUID storeId) {
         this.accessToken = accessToken;
-        this.storeId = storeId;
+        this.role = role;
         this.email = email;
-        this.storeName = storeName;
+        this.name = name;
+        this.storeId = storeId;
     }
 }
