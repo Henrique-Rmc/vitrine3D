@@ -53,6 +53,11 @@ public class Product {
     // Nullable no banco de propósito: ALTER TABLE ADD COLUMN ... NOT NULL falha em tabelas
     // com linhas existentes (sem valor pra preencher). Produtos novos sempre recebem pelo
     // menos um Map vazio via ProductAttributeValidator; produtos antigos ficam null.
+    // Só relevante quando store.profileType == AFFILIATE.
+    // Deve sempre começar com "https://" (validado no service).
+    @Column(length = 2048)
+    private String affiliateUrl;
+
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> attributes = new HashMap<>();
 
@@ -87,6 +92,9 @@ public class Product {
 
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+
+    public String getAffiliateUrl() { return affiliateUrl; }
+    public void setAffiliateUrl(String affiliateUrl) { this.affiliateUrl = affiliateUrl; }
 
     public Map<String, Object> getAttributes() { return attributes; }
     public void setAttributes(Map<String, Object> attributes) { this.attributes = attributes; }

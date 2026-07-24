@@ -68,6 +68,18 @@ public class Store {
     @JoinColumn(name = "business_type_id")
     private BusinessType businessType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private StoreProfileType profileType = StoreProfileType.STANDARD;
+
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(unique = true, length = 36)
+    private String emailVerificationToken;
+
+    private Instant emailVerificationTokenExpiresAt;
+
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
 
@@ -120,6 +132,18 @@ public class Store {
 
     public BusinessType getBusinessType() { return businessType; }
     public void setBusinessType(BusinessType businessType) { this.businessType = businessType; }
+
+    public StoreProfileType getProfileType() { return profileType; }
+    public void setProfileType(StoreProfileType profileType) { this.profileType = profileType; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public String getEmailVerificationToken() { return emailVerificationToken; }
+    public void setEmailVerificationToken(String emailVerificationToken) { this.emailVerificationToken = emailVerificationToken; }
+
+    public Instant getEmailVerificationTokenExpiresAt() { return emailVerificationTokenExpiresAt; }
+    public void setEmailVerificationTokenExpiresAt(Instant emailVerificationTokenExpiresAt) { this.emailVerificationTokenExpiresAt = emailVerificationTokenExpiresAt; }
 
     public List<Product> getProducts() { return products; }
     public void setProducts(List<Product> products) { this.products = products; }

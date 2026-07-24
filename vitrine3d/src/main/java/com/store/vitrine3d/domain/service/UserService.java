@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public interface UserService {
     Store register(StoreRegisterRequest request);
+    Store registerAffiliate(StoreRegisterRequest request);
     Store update(UUID id, StoreUpdateRequest request);
     Store uploadLogo(UUID id, MultipartFile logo);
     Store uploadCoverImage(UUID id, MultipartFile coverImage);
@@ -18,4 +19,6 @@ public interface UserService {
     Optional<Store> findById(UUID id);
     Optional<Store> findByEmail(String email);
     Optional<Store> findBySlug(String slug);
+    void verifyEmail(String token);
+    void resendVerification(String email);
 }

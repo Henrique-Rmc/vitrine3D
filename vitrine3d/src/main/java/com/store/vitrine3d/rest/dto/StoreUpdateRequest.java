@@ -1,5 +1,6 @@
 package com.store.vitrine3d.rest.dto;
 
+import com.store.vitrine3d.domain.model.StoreProfileType;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -22,4 +23,5 @@ public class StoreUpdateRequest {
     private Long stateId;
     private Long cityId;
     private Long businessTypeId;
+    private StoreProfileType profileType;
 }

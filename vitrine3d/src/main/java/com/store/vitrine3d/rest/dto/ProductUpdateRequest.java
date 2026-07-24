@@ -29,4 +29,8 @@ public class ProductUpdateRequest {
 
     /** Nulo = nao altera o ProductType atual do produto. */
     private Long productTypeId;
+
+    /** Nulo = nao altera o affiliateUrl atual. Deve começar com "https://" se informado. */
+    @Size(max = 2048, message = "Affiliate URL must not exceed 2048 characters")
+    private String affiliateUrl;
 }

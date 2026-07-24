@@ -5,17 +5,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.store.vitrine3d.domain.model.BusinessType;
 import com.store.vitrine3d.domain.model.City;
+import com.store.vitrine3d.domain.model.AdminUser;
+import com.store.vitrine3d.domain.model.PlanLimit;
 import com.store.vitrine3d.domain.model.State;
+import com.store.vitrine3d.domain.model.SubscriptionPlan;
+import com.store.vitrine3d.domain.repository.AdminUserRepository;
 import com.store.vitrine3d.domain.repository.BusinessTypeRepository;
 import com.store.vitrine3d.domain.repository.CityRepository;
+import com.store.vitrine3d.domain.repository.PlanLimitRepository;
 import com.store.vitrine3d.domain.repository.StateRepository;
 import lombok.Data;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,15 +56,30 @@ public class DataInitializer implements CommandLineRunner {
     private final StateRepository stateRepository;
     private final CityRepository cityRepository;
     private final BusinessTypeRepository businessTypeRepository;
+    private final AdminUserRepository adminUserRepository;
+    private final PlanLimitRepository planLimitRepository;
+    private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
 
     public DataInitializer(StateRepository stateRepository,
                            CityRepository cityRepository,
                            BusinessTypeRepository businessTypeRepository,
+                           AdminUserRepository adminUserRepository,
+                           PlanLimitRepository planLimitRepository,
+                           PasswordEncoder passwordEncoder,
                            ObjectMapper objectMapper) {
         this.stateRepository = stateRepository;
         this.cityRepository = cityRepository;
         this.businessTypeRepository = businessTypeRepository;
+        this.adminUserRepository = adminUserRepository;
+        this.planLimitRepository = planLimitRepository;
+        this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
     }
 
@@ -66,6 +88,32 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         seedStatesAndCities();
         seedBusinessTypes();
+        seedAdmin();
+        seedPlanLimits();
+    }
+
+    // DORMANT — seeds default limits per plan; enforcement is not yet wired.
+    private void seedPlanLimits() {
+        seedPlanLimit(SubscriptionPlan.FREE,  20,  3,  3, 3, false, false);
+        seedPlanLimit(SubscriptionPlan.BASIC, 100, 10, 5, 3, true,  false);
+        seedPlanLimit(SubscriptionPlan.PRO,   -1,  -1, 10, 5, true, true);
+    }
+
+    private void seedPlanLimit(SubscriptionPlan plan, int maxProducts, int maxProductTypes,
+                                int maxFeatured, int maxPromo,
+                                boolean affiliate, boolean customDomain) {
+        if (planLimitRepository.existsByPlan(plan)) return;
+        planLimitRepository.save(new PlanLimit(plan, maxProducts, maxProductTypes,
+                maxFeatured, maxPromo, affiliate, customDomain));
+    }
+
+    private void seedAdmin() {
+        if (adminUserRepository.existsByEmail(adminEmail)) return;
+        AdminUser admin = new AdminUser();
+        admin.setEmail(adminEmail);
+        admin.setPassword(passwordEncoder.encode(adminPassword));
+        admin.setName("Admin");
+        adminUserRepository.save(admin);
     }
 
     /**

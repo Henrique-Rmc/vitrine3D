@@ -1,15 +1,24 @@
 package com.store.vitrine3d.rest.controller;
 
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.domain.service.CurrentStoreResolver;
+import com.store.vitrine3d.domain.service.RefreshTokenService;
 import com.store.vitrine3d.domain.service.UserService;
+import com.store.vitrine3d.domain.service.impl.StoreAttributeDefinitionService;
+import com.store.vitrine3d.domain.service.impl.SubscriptionService;
+import com.store.vitrine3d.infrastructure.security.JwtTokenProvider;
+import com.store.vitrine3d.rest.dto.AttributeDefinitionResponse;
+import com.store.vitrine3d.rest.dto.LoginResponse;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
 import com.store.vitrine3d.rest.dto.StoreResponse;
 import com.store.vitrine3d.rest.dto.StoreUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,16 +35,53 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final SubscriptionService subscriptionService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final StoreAttributeDefinitionService attributeService;
+    private final CurrentStoreResolver currentStoreResolver;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, SubscriptionService subscriptionService,
+                          JwtTokenProvider jwtTokenProvider, RefreshTokenService refreshTokenService,
+                          StoreAttributeDefinitionService attributeService,
+                          CurrentStoreResolver currentStoreResolver) {
         this.userService = userService;
+        this.subscriptionService = subscriptionService;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.refreshTokenService = refreshTokenService;
+        this.attributeService = attributeService;
+        this.currentStoreResolver = currentStoreResolver;
     }
 
-    @Operation(summary = "Cadastra um novo lojista")
+    @Operation(summary = "Cadastra um novo lojista — retorna access token para login imediato")
     @PostMapping("/register")
-    public ResponseEntity<StoreResponse> register(@Valid @RequestBody StoreRegisterRequest request) {
+    public ResponseEntity<LoginResponse> register(@Valid @RequestBody StoreRegisterRequest request) {
+        return buildRegisterResponse(userService.register(request));
+    }
+
+    @Operation(summary = "Cadastra um lojista afiliado — profileType definido internamente como AFFILIATE")
+    @PostMapping("/register/affiliate")
+    public ResponseEntity<LoginResponse> registerAffiliate(@Valid @RequestBody StoreRegisterRequest request) {
+        return buildRegisterResponse(userService.registerAffiliate(request));
+    }
+
+    private ResponseEntity<LoginResponse> buildRegisterResponse(Store store) {
+        String accessToken = jwtTokenProvider.generateToken(store.getEmail());
+        String rawRefreshToken = refreshTokenService.createFor(store);
+        ResponseCookie cookie = refreshTokenService.buildCookie(rawRefreshToken);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(StoreResponse.from(userService.register(request)));
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(new LoginResponse(accessToken, "STORE_OWNER", store.getEmail(), store.getStoreName(), store.getId()));
+    }
+
+    @Operation(summary = "Lista atributos do lojista autenticado, filtrados por tipo de produto")
+    @GetMapping("/me/attributes")
+    public List<AttributeDefinitionResponse> listMyAttributes(
+            @RequestParam(required = false) Long productTypeId) {
+        Store store = currentStoreResolver.getCurrentStore();
+        return attributeService.listEffective(store.getId(), productTypeId).stream()
+                .map(AttributeDefinitionResponse::from)
+                .toList();
     }
 
     @Operation(summary = "Atualiza dados do lojista")
@@ -46,7 +92,8 @@ public class UserController {
         if (!isOwner(principal, id)) {
             throw new AccessDeniedException("You do not have permission to modify this store.");
         }
-        return ResponseEntity.ok(StoreResponse.from(userService.update(id, request)));
+        Store store = userService.update(id, request);
+        return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
     }
 
     @Operation(summary = "Faz upload do logo da loja")
@@ -57,7 +104,8 @@ public class UserController {
         if (!isOwner(principal, id)) {
             throw new AccessDeniedException("You do not have permission to modify this store.");
         }
-        return ResponseEntity.ok(StoreResponse.from(userService.uploadLogo(id, logo)));
+        Store store = userService.uploadLogo(id, logo);
+        return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
     }
 
     @Operation(summary = "Faz upload da foto de capa da loja")
@@ -68,7 +116,8 @@ public class UserController {
         if (!isOwner(principal, id)) {
             throw new AccessDeniedException("You do not have permission to modify this store.");
         }
-        return ResponseEntity.ok(StoreResponse.from(userService.uploadCoverImage(id, coverImage)));
+        Store store = userService.uploadCoverImage(id, coverImage);
+        return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
     }
 
     @Operation(summary = "Faz upload das fotos informativas da loja (até 3 — substitui todas as existentes)")
@@ -79,7 +128,8 @@ public class UserController {
         if (!isOwner(principal, id)) {
             throw new AccessDeniedException("You do not have permission to modify this store.");
         }
-        return ResponseEntity.ok(StoreResponse.from(userService.uploadPromoImages(id, promoImages)));
+        Store store = userService.uploadPromoImages(id, promoImages);
+        return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
     }
 
     @Operation(summary = "Busca lojista por ID — perfil público")

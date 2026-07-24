@@ -70,7 +70,7 @@ class ProductCreationIntegrationTest {
                 .andReturn();
 
         storeId = UUID.fromString(objectMapper.readTree(registerResult.getResponse().getContentAsString())
-                .get("id").asText());
+                .get("storeId").asText());
 
         // 2 — login, captura token
         String loginBody = """

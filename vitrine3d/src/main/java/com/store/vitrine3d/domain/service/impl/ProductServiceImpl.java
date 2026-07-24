@@ -1,9 +1,12 @@
 package com.store.vitrine3d.domain.service.impl;
 
+import com.store.vitrine3d.domain.model.AffiliateClick;
 import com.store.vitrine3d.domain.model.Product;
 import com.store.vitrine3d.domain.model.ProductType;
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.domain.model.StoreProfileType;
 import com.store.vitrine3d.domain.model.WhatsappClick;
+import com.store.vitrine3d.domain.repository.AffiliateClickRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
@@ -44,6 +47,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductTypeRepository productTypeRepository;
     private final StorageService storageService;
     private final WhatsappClickRepository whatsappClickRepository;
+    private final AffiliateClickRepository affiliateClickRepository;
     private final CurrentStoreResolver currentStoreResolver;
     private final ProductAttributeValidator attributeValidator;
     private final ProductAttributeFilterBuilder attributeFilterBuilder;
@@ -53,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
                                ProductTypeRepository productTypeRepository,
                                StorageService storageService,
                                WhatsappClickRepository whatsappClickRepository,
+                               AffiliateClickRepository affiliateClickRepository,
                                CurrentStoreResolver currentStoreResolver,
                                ProductAttributeValidator attributeValidator,
                                ProductAttributeFilterBuilder attributeFilterBuilder) {
@@ -61,6 +66,7 @@ public class ProductServiceImpl implements ProductService {
         this.productTypeRepository = productTypeRepository;
         this.storageService = storageService;
         this.whatsappClickRepository = whatsappClickRepository;
+        this.affiliateClickRepository = affiliateClickRepository;
         this.currentStoreResolver = currentStoreResolver;
         this.attributeValidator = attributeValidator;
         this.attributeFilterBuilder = attributeFilterBuilder;
@@ -85,6 +91,7 @@ public class ProductServiceImpl implements ProductService {
         product.setIsVisible(request.getIsVisible() != null ? request.getIsVisible() : Boolean.TRUE);
         product.setStore(store);
         product.setProductType(productType);
+        product.setAffiliateUrl(resolveAffiliateUrl(store, request.getAffiliateUrl(), null));
         product.setAttributes(attributeValidator.validateForCreate(
                 store, productType != null ? productType.getId() : null, request.getAttributes()));
 
@@ -109,6 +116,9 @@ public class ProductServiceImpl implements ProductService {
         if (hasFiles(images)) {
             product.setImageUrls(uploadImages(images));
         }
+        if (request.getAffiliateUrl() != null) {
+            product.setAffiliateUrl(resolveAffiliateUrl(product.getStore(), request.getAffiliateUrl(), product.getAffiliateUrl()));
+        }
         if (request.getAttributes() != null) {
             Long productTypeId = product.getProductType() != null ? product.getProductType().getId() : null;
             product.setAttributes(attributeValidator.validateForUpdate(
@@ -116,6 +126,25 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return productRepository.save(product);
+    }
+
+    /**
+     * Valida e retorna a URL de afiliado a persistir.
+     * - Lojas AFFILIATE: campo obrigatório em creates (current == null), deve começar com "https://".
+     * - Lojas STANDARD: campo ignorado — retorna sempre null para evitar dados órfãos.
+     */
+    private String resolveAffiliateUrl(Store store, String incoming, String current) {
+        if (store.getProfileType() != StoreProfileType.AFFILIATE) return null;
+        if (incoming == null || incoming.isBlank()) {
+            if (current != null) return current;
+            throw new BusinessRuleException("AFFILIATE_URL_REQUIRED",
+                    "Affiliate stores require an affiliate URL for every product.");
+        }
+        if (!incoming.startsWith("https://")) {
+            throw new BusinessRuleException("INVALID_AFFILIATE_URL",
+                    "Affiliate URL must start with 'https://'.");
+        }
+        return incoming;
     }
 
     private ProductType resolveProductType(Store store, Long productTypeId) {
@@ -255,6 +284,23 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public long getClickCount(Long productId) {
         return whatsappClickRepository.countByProductId(productId);
+    }
+
+    @Override
+    public long registerAffiliateClick(Long productId) {
+        Product product = findById(productId);
+        if (product.getStore().getProfileType() != StoreProfileType.AFFILIATE) {
+            throw new BusinessRuleException("NOT_AFFILIATE_STORE",
+                    "This product does not belong to an affiliate store.");
+        }
+        affiliateClickRepository.save(new AffiliateClick(product));
+        return affiliateClickRepository.countByProductId(productId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getAffiliateClickCount(Long productId) {
+        return affiliateClickRepository.countByProductId(productId);
     }
 
     private void assertStoreOwnership(Store store) {

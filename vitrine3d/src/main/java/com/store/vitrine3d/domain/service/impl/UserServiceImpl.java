@@ -1,6 +1,7 @@
 package com.store.vitrine3d.domain.service.impl;
 
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.domain.model.StoreProfileType;
 import com.store.vitrine3d.domain.model.StoreSlugHistory;
 import com.store.vitrine3d.domain.repository.BusinessTypeRepository;
 import com.store.vitrine3d.domain.repository.CityRepository;
@@ -14,12 +15,16 @@ import com.store.vitrine3d.rest.dto.StoreUpdateRequest;
 import com.store.vitrine3d.rest.exception.BusinessRuleException;
 import com.store.vitrine3d.rest.exception.EmailAlreadyExistsException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.Normalizer;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +34,7 @@ import java.util.UUID;
 @Transactional
 public class UserServiceImpl implements UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
     private static final int MAX_PROMO_IMAGES = 3;
 
     private final StoreRepository storeRepository;
@@ -38,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final BusinessTypeRepository businessTypeRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
+    private final SubscriptionService subscriptionService;
 
     public UserServiceImpl(StoreRepository storeRepository,
                            StoreSlugHistoryRepository slugHistoryRepository,
@@ -45,7 +52,8 @@ public class UserServiceImpl implements UserService {
                            CityRepository cityRepository,
                            BusinessTypeRepository businessTypeRepository,
                            PasswordEncoder passwordEncoder,
-                           StorageService storageService) {
+                           StorageService storageService,
+                           SubscriptionService subscriptionService) {
         this.storeRepository = storeRepository;
         this.slugHistoryRepository = slugHistoryRepository;
         this.stateRepository = stateRepository;
@@ -53,10 +61,20 @@ public class UserServiceImpl implements UserService {
         this.businessTypeRepository = businessTypeRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
+        this.subscriptionService = subscriptionService;
     }
 
     @Override
     public Store register(StoreRegisterRequest request) {
+        return doRegister(request, StoreProfileType.STANDARD);
+    }
+
+    @Override
+    public Store registerAffiliate(StoreRegisterRequest request) {
+        return doRegister(request, StoreProfileType.AFFILIATE);
+    }
+
+    private Store doRegister(StoreRegisterRequest request, StoreProfileType profileType) {
         if (storeRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException(request.getEmail());
         }
@@ -69,6 +87,7 @@ public class UserServiceImpl implements UserService {
         store.setSlug(generateUniqueSlug(request.getStoreName()));
         store.setWhatsappNumber(request.getWhatsappNumber());
         store.setStoreDescription(request.getStoreDescription());
+        store.setProfileType(profileType);
 
         if (request.getStateId() != null) {
             store.setState(stateRepository.findById(request.getStateId())
@@ -83,7 +102,17 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new ResourceNotFoundException("Tipo de negocio", request.getBusinessTypeId())));
         }
 
-        return storeRepository.save(store);
+        Store saved = storeRepository.save(store);
+
+        String token = UUID.randomUUID().toString();
+        saved.setEmailVerificationToken(token);
+        saved.setEmailVerificationTokenExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
+        storeRepository.save(saved);
+        log.info("Email verification link: /api/auth/verify-email?token={}", token);
+
+        subscriptionService.createTrialFor(saved);
+
+        return saved;
     }
 
     @Override
@@ -113,6 +142,9 @@ public class UserServiceImpl implements UserService {
         if (request.getBusinessTypeId() != null) {
             store.setBusinessType(businessTypeRepository.findById(request.getBusinessTypeId())
                     .orElseThrow(() -> new ResourceNotFoundException("Tipo de negocio", request.getBusinessTypeId())));
+        }
+        if (request.getProfileType() != null) {
+            store.setProfileType(request.getProfileType());
         }
 
         return storeRepository.save(store);
@@ -159,6 +191,34 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<Store> findByEmail(String email) {
         return storeRepository.findByEmail(email);
+    }
+
+    @Override
+    public void verifyEmail(String token) {
+        Store store = storeRepository.findByEmailVerificationToken(token)
+                .orElseThrow(() -> new BusinessRuleException("TOKEN_INVALID", "Invalid or already used verification token."));
+        if (store.getEmailVerificationTokenExpiresAt() == null
+                || Instant.now().isAfter(store.getEmailVerificationTokenExpiresAt())) {
+            throw new BusinessRuleException("TOKEN_EXPIRED", "Verification token has expired.");
+        }
+        store.setEmailVerified(true);
+        store.setEmailVerificationToken(null);
+        store.setEmailVerificationTokenExpiresAt(null);
+        storeRepository.save(store);
+    }
+
+    @Override
+    public void resendVerification(String email) {
+        Store store = storeRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Store", email));
+        if (store.isEmailVerified()) {
+            throw new BusinessRuleException("ALREADY_VERIFIED", "Email is already verified.");
+        }
+        String token = UUID.randomUUID().toString();
+        store.setEmailVerificationToken(token);
+        store.setEmailVerificationTokenExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
+        storeRepository.save(store);
+        log.info("Email verification link: /api/auth/verify-email?token={}", token);
     }
 
     @Override

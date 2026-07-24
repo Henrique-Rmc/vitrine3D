@@ -34,8 +34,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/auth/verify-email").permitAll()
                 // Cadastro público
                 .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/users/register/affiliate").permitAll()
                 // Perfis públicos de loja — apenas um nível de path para não expor rotas futuras
                 .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/store/*").permitAll()
@@ -59,6 +61,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/version").permitAll()
                 // Documentação
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // Painel administrativo — apenas ADMIN
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Tudo mais requer autenticação
                 .anyRequest().authenticated()
             )
