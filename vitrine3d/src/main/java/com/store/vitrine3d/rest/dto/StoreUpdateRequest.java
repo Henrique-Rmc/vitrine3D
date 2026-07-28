@@ -1,5 +1,6 @@
 package com.store.vitrine3d.rest.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.store.vitrine3d.domain.model.StoreProfileType;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -24,4 +25,13 @@ public class StoreUpdateRequest {
     private Long cityId;
     private Long businessTypeId;
     private StoreProfileType profileType;
+
+    // PatchField distingue "não enviado" (não mexe no tema) de "enviado como null" (remove a
+    // personalização) — ver PatchField para o porquê de String/@Pattern não servirem aqui.
+    // Validado manualmente em UserServiceImpl.update(), já que @Pattern não se aplica a este tipo.
+    @JsonDeserialize(using = PatchFieldStringDeserializer.class)
+    private PatchField<String> storeNameFont = PatchField.absent();
+
+    @JsonDeserialize(using = PatchFieldStringDeserializer.class)
+    private PatchField<String> coverColor = PatchField.absent();
 }

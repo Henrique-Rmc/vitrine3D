@@ -9,12 +9,18 @@ import com.store.vitrine3d.domain.service.impl.SubscriptionService;
 import com.store.vitrine3d.infrastructure.security.JwtTokenProvider;
 import com.store.vitrine3d.rest.dto.AttributeDefinitionResponse;
 import com.store.vitrine3d.rest.dto.LoginResponse;
+import com.store.vitrine3d.rest.dto.PatchFieldStringDeserializer;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
 import com.store.vitrine3d.rest.dto.StoreResponse;
 import com.store.vitrine3d.rest.dto.StoreUpdateRequest;
+import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.aot.hint.MemberCategory;
+import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,9 +35,16 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * StoreUpdateRequest.storeNameFont/coverColor usam @JsonDeserialize(using=PatchFieldStringDeserializer)
+ * — Jackson instancia o deserializer via reflexão (construtor sem args), fora do alcance da
+ * introspecção automática de @RequestBody do Spring AOT. Mesma categoria de gap já vista em
+ * ProductController.
+ */
 @Tag(name = "Usuários", description = "Cadastro e consulta de lojistas")
 @RestController
 @RequestMapping("/api/users")
+@ImportRuntimeHints(UserController.PatchFieldHints.class)
 public class UserController {
 
     private final UserService userService;
@@ -132,11 +145,26 @@ public class UserController {
         return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
     }
 
+    @Operation(summary = "Perfil completo do lojista autenticado — usado pela própria tela de configurações")
+    @GetMapping("/me")
+    public ResponseEntity<StoreResponse> getMe(@AuthenticationPrincipal UserDetails principal) {
+        Store store = userService.findByEmail(principal.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("Loja", principal.getUsername()));
+        return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(store.getId()).orElse(null)));
+    }
+
     @Operation(summary = "Busca lojista por ID — perfil público")
     @GetMapping("/{id}")
-    public ResponseEntity<StoreResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<StoreResponse> getById(@PathVariable UUID id,
+                                                 @AuthenticationPrincipal UserDetails principal) {
         return userService.findById(id)
-                .map(store -> ResponseEntity.ok(StoreResponse.fromPublic(store)))
+                .map(store -> {
+                    boolean isOwner = principal != null && principal.getUsername().equals(store.getEmail());
+                    StoreResponse response = isOwner
+                            ? StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null))
+                            : StoreResponse.fromPublic(store);
+                    return ResponseEntity.ok(response);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -158,5 +186,13 @@ public class UserController {
                 .map(Store::getId)
                 .map(ownerId -> ownerId.equals(targetId))
                 .orElse(false);
+    }
+
+    static class PatchFieldHints implements RuntimeHintsRegistrar {
+        @Override
+        public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+            hints.reflection().registerType(PatchFieldStringDeserializer.class,
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+        }
     }
 }

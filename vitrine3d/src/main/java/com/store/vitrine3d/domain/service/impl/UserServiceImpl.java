@@ -26,7 +26,9 @@ import java.text.Normalizer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -147,7 +149,33 @@ public class UserServiceImpl implements UserService {
             store.setProfileType(request.getProfileType());
         }
 
+        if (request.getStoreNameFont().isPresent() || request.getCoverColor().isPresent()) {
+            Map<String, String> theme = new HashMap<>(store.getThemeConfig());
+            if (request.getStoreNameFont().isPresent()) {
+                applyThemePatch(theme, "storeNameFont", request.getStoreNameFont().getValue(),
+                        "^[a-zA-Z0-9 -]{1,60}$", "INVALID_STORE_NAME_FONT",
+                        "Font name must be 1-60 chars of letters, numbers, spaces or hyphens");
+            }
+            if (request.getCoverColor().isPresent()) {
+                applyThemePatch(theme, "coverColor", request.getCoverColor().getValue(),
+                        "^#[0-9A-Fa-f]{6}$", "INVALID_COVER_COLOR",
+                        "Cover color must be a hex color in #RRGGBB format");
+            }
+            store.setThemeConfig(theme);
+        }
+
         return storeRepository.save(store);
+    }
+
+    private void applyThemePatch(Map<String, String> theme, String key, String value,
+                                 String pattern, String errorCode, String errorMessage) {
+        if (value == null) {
+            theme.remove(key);
+        } else if (value.matches(pattern)) {
+            theme.put(key, value);
+        } else {
+            throw new BusinessRuleException(errorCode, errorMessage);
+        }
     }
 
     @Override

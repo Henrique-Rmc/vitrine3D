@@ -2,11 +2,15 @@ package com.store.vitrine3d.domain.model;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -80,6 +84,12 @@ public class Store {
 
     private Instant emailVerificationTokenExpiresAt;
 
+    // Personalização visual da loja (fonte, cores) — chaves fixas validadas em
+    // StoreThemeUpdateRequest. Visível publicamente: renderiza a mesma pra qualquer visitante.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "theme_config")
+    private Map<String, String> themeConfig = new HashMap<>();
+
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
 
@@ -144,6 +154,9 @@ public class Store {
 
     public Instant getEmailVerificationTokenExpiresAt() { return emailVerificationTokenExpiresAt; }
     public void setEmailVerificationTokenExpiresAt(Instant emailVerificationTokenExpiresAt) { this.emailVerificationTokenExpiresAt = emailVerificationTokenExpiresAt; }
+
+    public Map<String, String> getThemeConfig() { return themeConfig; }
+    public void setThemeConfig(Map<String, String> themeConfig) { this.themeConfig = themeConfig; }
 
     public List<Product> getProducts() { return products; }
     public void setProducts(List<Product> products) { this.products = products; }
