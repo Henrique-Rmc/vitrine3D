@@ -38,6 +38,9 @@ public class SecurityConfig {
                 // Cadastro público
                 .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/register/affiliate").permitAll()
+                // Perfil completo do próprio lojista — precisa vir antes do permitAll de "/api/users/*"
+                // abaixo, senão o wildcard de 1 nível casaria com "/me" também.
+                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                 // Perfis públicos de loja — apenas um nível de path para não expor rotas futuras
                 .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/store/*").permitAll()
