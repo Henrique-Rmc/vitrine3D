@@ -190,7 +190,17 @@ public class UserServiceImpl implements UserService {
     public Store uploadCoverImage(UUID id, MultipartFile coverImage) {
         Store store = storeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
+        storageService.deleteFile(store.getCoverImageUrl());
         store.setCoverImageUrl(storageService.uploadFile(coverImage));
+        return storeRepository.save(store);
+    }
+
+    @Override
+    public Store deleteCoverImage(UUID id) {
+        Store store = storeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Loja", id.toString()));
+        storageService.deleteFile(store.getCoverImageUrl());
+        store.setCoverImageUrl(null);
         return storeRepository.save(store);
     }
 

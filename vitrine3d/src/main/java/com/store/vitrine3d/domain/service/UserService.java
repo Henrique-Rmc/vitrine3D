@@ -15,6 +15,7 @@ public interface UserService {
     Store update(UUID id, StoreUpdateRequest request);
     Store uploadLogo(UUID id, MultipartFile logo);
     Store uploadCoverImage(UUID id, MultipartFile coverImage);
+    Store deleteCoverImage(UUID id);
     Store uploadPromoImages(UUID id, List<MultipartFile> promoImages);
     Optional<Store> findById(UUID id);
     Optional<Store> findByEmail(String email);
