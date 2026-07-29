@@ -53,5 +53,18 @@
         ]
       }
     ]
+  },
+  {
+    "name": "org.simpleframework.xml.core.ElementLabel",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "org.simpleframework.xml.core.Contact",
+          "org.simpleframework.xml.Element",
+          "org.simpleframework.xml.stream.Format"
+        ]
+      }
+    ]
   }
 ]
