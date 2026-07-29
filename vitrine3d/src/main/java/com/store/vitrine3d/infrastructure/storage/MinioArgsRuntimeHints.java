@@ -3,6 +3,7 @@ package com.store.vitrine3d.infrastructure.storage;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.SetBucketPolicyArgs;
 import io.minio.messages.ErrorResponse;
 import io.minio.messages.LocationConstraint;
@@ -29,6 +30,7 @@ class MinioArgsRuntimeHints implements RuntimeHintsRegistrar {
                 .registerType(MakeBucketArgs.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS)
                 .registerType(SetBucketPolicyArgs.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS)
                 .registerType(PutObjectArgs.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS)
+                .registerType(RemoveObjectArgs.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS)
                 .registerType(LocationConstraint.class,
                         MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.DECLARED_FIELDS)
                 .registerType(ErrorResponse.class,
