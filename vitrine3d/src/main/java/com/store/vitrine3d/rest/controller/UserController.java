@@ -133,6 +133,17 @@ public class UserController {
         return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
     }
 
+    @Operation(summary = "Remove a foto de capa da loja")
+    @DeleteMapping("/{id}/cover-image")
+    public ResponseEntity<StoreResponse> deleteCoverImage(@PathVariable UUID id,
+                                                          @AuthenticationPrincipal UserDetails principal) {
+        if (!isOwner(principal, id)) {
+            throw new AccessDeniedException("You do not have permission to modify this store.");
+        }
+        Store store = userService.deleteCoverImage(id);
+        return ResponseEntity.ok(StoreResponse.from(store, subscriptionService.findByStoreId(id).orElse(null)));
+    }
+
     @Operation(summary = "Faz upload das fotos informativas da loja (até 3 — substitui todas as existentes)")
     @PostMapping(value = "/{id}/promo-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StoreResponse> uploadPromoImages(@PathVariable UUID id,

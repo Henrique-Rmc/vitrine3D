@@ -3,6 +3,7 @@ package com.store.vitrine3d.infrastructure.storage;
 import com.store.vitrine3d.rest.exception.InvalidImageFormatException;
 import io.minio.*;
 import io.minio.errors.MinioException;
+import io.minio.RemoveObjectArgs;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +98,21 @@ public class MinioStorageServiceImpl implements StorageService {
         } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
             log.error("Failed to upload file to MinIO", e);
             throw new RuntimeException("Falha ao enviar o arquivo para o storage", e);
+        }
+    }
+
+    @Override
+    public void deleteFile(String url) {
+        if (url == null || url.isBlank()) return;
+        String objectName = url.substring(url.lastIndexOf('/') + 1);
+        try {
+            client.removeObject(RemoveObjectArgs.builder()
+                    .bucket(props.getBucketName())
+                    .object(objectName)
+                    .build());
+            log.debug("File deleted from MinIO: {}", objectName);
+        } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
+            log.warn("Failed to delete file '{}' from MinIO: {}", objectName, e.getMessage());
         }
     }
 
