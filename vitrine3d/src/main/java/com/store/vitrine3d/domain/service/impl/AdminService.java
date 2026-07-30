@@ -3,8 +3,14 @@ package com.store.vitrine3d.domain.service.impl;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.Subscription;
 import com.store.vitrine3d.domain.repository.AffiliateClickRepository;
+import com.store.vitrine3d.domain.repository.AttributeDefinitionRepository;
+import com.store.vitrine3d.domain.repository.CartRepository;
+import com.store.vitrine3d.domain.repository.OrderRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
+import com.store.vitrine3d.domain.repository.ProductTypeRepository;
+import com.store.vitrine3d.domain.repository.RefreshTokenRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
+import com.store.vitrine3d.domain.repository.StoreSlugHistoryRepository;
 import com.store.vitrine3d.domain.repository.SubscriptionRepository;
 import com.store.vitrine3d.domain.repository.WhatsappClickRepository;
 import com.store.vitrine3d.rest.dto.AdminStoreFilter;
@@ -29,6 +35,12 @@ public class AdminService {
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionService subscriptionService;
     private final ProductRepository productRepository;
+    private final ProductTypeRepository productTypeRepository;
+    private final AttributeDefinitionRepository attributeDefinitionRepository;
+    private final CartRepository cartRepository;
+    private final OrderRepository orderRepository;
+    private final StoreSlugHistoryRepository storeSlugHistoryRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final WhatsappClickRepository whatsappClickRepository;
     private final AffiliateClickRepository affiliateClickRepository;
 
@@ -36,12 +48,24 @@ public class AdminService {
                         SubscriptionRepository subscriptionRepository,
                         SubscriptionService subscriptionService,
                         ProductRepository productRepository,
+                        ProductTypeRepository productTypeRepository,
+                        AttributeDefinitionRepository attributeDefinitionRepository,
+                        CartRepository cartRepository,
+                        OrderRepository orderRepository,
+                        StoreSlugHistoryRepository storeSlugHistoryRepository,
+                        RefreshTokenRepository refreshTokenRepository,
                         WhatsappClickRepository whatsappClickRepository,
                         AffiliateClickRepository affiliateClickRepository) {
         this.storeRepository = storeRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.subscriptionService = subscriptionService;
         this.productRepository = productRepository;
+        this.productTypeRepository = productTypeRepository;
+        this.attributeDefinitionRepository = attributeDefinitionRepository;
+        this.cartRepository = cartRepository;
+        this.orderRepository = orderRepository;
+        this.storeSlugHistoryRepository = storeSlugHistoryRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.whatsappClickRepository = whatsappClickRepository;
         this.affiliateClickRepository = affiliateClickRepository;
     }
@@ -70,10 +94,65 @@ public class AdminService {
         return AdminStoreResponse.from(store, sub);
     }
 
+    /**
+     * Cascade policy for store deletion.
+     *
+     * HARD DELETE — data is purely derived, no independent value:
+     *   whatsapp_clicks, affiliate_clicks   (leaf analytics; reference products)
+     *   product_images                      (ElementCollection of products)
+     *   attribute_definition_options        (ElementCollection of attribute_definitions)
+     *   cart_items → carts                  (ephemeral shopping state, no fiscal value)
+     *   products, attribute_definitions     (reference product_types)
+     *   product_types, store_slug_history   (reference stores)
+     *   subscriptions, refresh_tokens       (reference stores)
+     *
+     * PRESERVE — financial/transactional records:
+     *   orders + order_items                orders.store_id is set to NULL;
+     *                                       rows remain intact for accounting
+     *                                       and dispute resolution.
+     *
+     * FK dependency order (children must be deleted before parents):
+     *   whatsapp_clicks, affiliate_clicks → products
+     *   product_images (EC), attribute_definition_options (EC)
+     *   cart_items → carts → stores
+     *   products, attribute_definitions → product_types → stores
+     *   orders: store_id nulled (not deleted) — order_items stay linked to orders
+     *   store_slug_history, subscriptions, refresh_tokens → stores
+     */
     public void deleteStore(UUID storeId) {
-        Store store = requireStore(storeId);
-        subscriptionRepository.findByStoreId(storeId).ifPresent(subscriptionRepository::delete);
-        storeRepository.delete(store);
+        if (!storeRepository.existsById(storeId)) {
+            throw new ResourceNotFoundException("Store", storeId.toString());
+        }
+
+        // 1. Click analytics (leaf nodes referencing products)
+        whatsappClickRepository.deleteAllByProductStoreId(storeId);
+        affiliateClickRepository.deleteAllByProductStoreId(storeId);
+
+        // 2. ElementCollection join tables (invisible to JPQL bulk delete)
+        productRepository.deleteImagesByStoreId(storeId);
+        attributeDefinitionRepository.deleteOptionsByStoreId(storeId);
+
+        // 3. Cart line items, then carts (ephemeral — hard delete)
+        cartRepository.deleteItemsByStoreId(storeId);
+        cartRepository.deleteAllByStoreId(storeId);
+
+        // 4. Orders: detach only — preserve as financial records
+        orderRepository.detachFromStore(storeId);
+
+        // 5. Products and attribute definitions (reference product_types)
+        productRepository.deleteAllByStoreId(storeId);
+        attributeDefinitionRepository.deleteAllByStoreId(storeId);
+
+        // 6. Product types (referenced by products/attrs above — must come after)
+        productTypeRepository.deleteAllByStoreId(storeId);
+
+        // 7. Remaining store-level entities
+        storeSlugHistoryRepository.deleteAllByStoreId(storeId);
+        subscriptionRepository.deleteByStoreId(storeId);
+        refreshTokenRepository.deleteAllByStoreId(storeId);
+
+        // 8. The store itself
+        storeRepository.deleteById(storeId);
     }
 
     public AdminStoreResponse updateSubscription(UUID storeId, SubscriptionAdminUpdateRequest req) {
