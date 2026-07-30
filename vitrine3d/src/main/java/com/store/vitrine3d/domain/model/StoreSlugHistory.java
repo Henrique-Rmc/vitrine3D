@@ -2,8 +2,6 @@ package com.store.vitrine3d.domain.model;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 
@@ -20,7 +18,6 @@ public class StoreSlugHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Store store;
 
     @CreationTimestamp

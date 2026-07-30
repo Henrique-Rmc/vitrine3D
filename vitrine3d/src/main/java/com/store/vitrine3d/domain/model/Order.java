@@ -19,8 +19,10 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "store_id", nullable = false)
+    // Nullable: when a store is deleted, store_id is set to NULL to preserve
+    // the order as a financial record. Do NOT cascade hard-delete from stores.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id")
     private Store store;
 
     @Column(nullable = false)

@@ -2,6 +2,7 @@ package com.store.vitrine3d.domain.repository;
 
 import com.store.vitrine3d.domain.model.AttributeDefinition;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,4 +25,12 @@ public interface AttributeDefinitionRepository extends JpaRepository<AttributeDe
 
     /** Todos os atributos de uma loja, gerais ou escopados a qualquer ProductType — usado pra checar colisao de key na criacao. */
     List<AttributeDefinition> findByStoreId(UUID storeId);
+
+    @Modifying
+    @Query(value = "DELETE FROM attribute_definition_options WHERE attribute_definition_id IN (SELECT id FROM attribute_definitions WHERE store_id = :storeId)", nativeQuery = true)
+    void deleteOptionsByStoreId(@Param("storeId") UUID storeId);
+
+    @Modifying
+    @Query("DELETE FROM AttributeDefinition ad WHERE ad.store.id = :storeId")
+    void deleteAllByStoreId(@Param("storeId") UUID storeId);
 }
