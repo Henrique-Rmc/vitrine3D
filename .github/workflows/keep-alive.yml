@@ -4,10 +4,13 @@ name: Keep-alive ping
 # O /api/health faz um round-trip real em DB e Redis (ver HealthCheckService), então um
 # único ping aqui já cobre os três — não precisa bater em cada serviço separadamente.
 #
-# Frequência: a cada 10 minutos. O Render suspende a instância após ~15min sem tráfego HTTP
-# e o Neon suspende o compute após ~5min sem query — 10min dá margem segura pros dois,
-# considerando que o agendamento do GitHub Actions pode atrasar alguns minutos em horários
-# de pico.
+# Frequência: a cada 5 minutos, deslocado dos minutos redondos (:02, :07, :12...). O Render
+# suspende a instância após ~15min sem tráfego HTTP e o Neon suspende o compute após ~5min
+# sem query — o Neon suspender entre pings é inofensivo (a próxima chamada a /api/health já
+# acorda ele, só adiciona ~500ms àquela resposta). O que precisa ser evitado é o Render
+# suspender, e o GitHub documenta que jobs agendados para horários redondos (:00, :10, :20...)
+# sofrem mais atraso/são ocasionalmente pulados por concentração de carga — daí o deslocamento
+# e o intervalo mais apertado, dando margem mesmo se uma execução atrasar ou for pulada.
 #
 # Aviso: o GitHub desativa workflows agendados automaticamente após 60 dias sem nenhum
 # commit no repositório. Se o deploy ficar muito tempo sem receber push, reative manualmente
@@ -15,7 +18,7 @@ name: Keep-alive ping
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "2-59/5 * * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -24,9 +27,13 @@ jobs:
     steps:
       - name: Ping /api/health
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://vitrine3d-latest.onrender.com/api/health)
-          echo "Status: $status"
-          if [ "$status" != "200" ]; then
-            echo "::error::Health check retornou status $status (esperado 200)"
-            exit 1
-          fi
+          for attempt in 1 2 3; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://vitrine3d-latest.onrender.com/api/health)
+            echo "Tentativa $attempt — status: $status"
+            if [ "$status" = "200" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check retornou status $status após 3 tentativas (esperado 200)"
+          exit 1
