@@ -149,7 +149,8 @@ public class UserServiceImpl implements UserService {
             store.setProfileType(request.getProfileType());
         }
 
-        if (request.getStoreNameFont().isPresent() || request.getCoverColor().isPresent()) {
+        if (request.getStoreNameFont().isPresent() || request.getCoverColor().isPresent()
+                || request.getStoreTheme().isPresent()) {
             Map<String, String> theme = new HashMap<>(store.getThemeConfig());
             if (request.getStoreNameFont().isPresent()) {
                 applyThemePatch(theme, "storeNameFont", request.getStoreNameFont().getValue(),
@@ -160,6 +161,11 @@ public class UserServiceImpl implements UserService {
                 applyThemePatch(theme, "coverColor", request.getCoverColor().getValue(),
                         "^#[0-9A-Fa-f]{6}$", "INVALID_COVER_COLOR",
                         "Cover color must be a hex color in #RRGGBB format");
+            }
+            if (request.getStoreTheme().isPresent()) {
+                applyThemePatch(theme, "storeTheme", request.getStoreTheme().getValue(),
+                        "^[a-z0-9-]{1,50}$", "INVALID_STORE_THEME",
+                        "Theme key must be 1-50 chars of lowercase letters, numbers or hyphens");
             }
             store.setThemeConfig(theme);
         }
