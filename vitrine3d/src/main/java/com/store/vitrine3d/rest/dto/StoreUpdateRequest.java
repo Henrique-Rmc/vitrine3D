@@ -34,4 +34,7 @@ public class StoreUpdateRequest {
 
     @JsonDeserialize(using = PatchFieldStringDeserializer.class)
     private PatchField<String> coverColor = PatchField.absent();
+
+    @JsonDeserialize(using = PatchFieldStringDeserializer.class)
+    private PatchField<String> storeTheme = PatchField.absent();
 }

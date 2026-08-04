@@ -34,6 +34,7 @@ public class StoreResponse {
     private SubscriptionResponse subscription;
     private String storeNameFont;
     private String coverColor;
+    private String storeTheme;
 
     // Resposta completa — para o próprio lojista autenticado
     public static StoreResponse from(Store store, Subscription sub) {
@@ -84,6 +85,7 @@ public class StoreResponse {
         dto.setProfileType(store.getProfileType());
         dto.setStoreNameFont(store.getThemeConfig().get("storeNameFont"));
         dto.setCoverColor(store.getThemeConfig().get("coverColor"));
+        dto.setStoreTheme(store.getThemeConfig().get("storeTheme"));
         return dto;
     }
 }
