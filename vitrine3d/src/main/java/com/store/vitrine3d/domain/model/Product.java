@@ -21,11 +21,18 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
+    // Bate com @Size(max = 2000) em ProductCreateRequest/ProductUpdateRequest — sem esse
+    // @Column, o Hibernate gera varchar(255) por padrão, e uma descrição de 256-2000 chars
+    // passa na validação da API mas quebra no INSERT com "value too long for type
+    // character varying(255)", que cai no handler genérico e vira 500 sem mensagem útil.
+    @Column(length = 2000)
     private String description;
 
+    // length bate com @Size(max = 2048) no fallback imageUrls de ProductCreateRequest —
+    // mesma classe de bug do description acima.
     @ElementCollection
     @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
-    @Column(name = "image_url", nullable = false)
+    @Column(name = "image_url", nullable = false, length = 2048)
     @OrderColumn(name = "image_order")
     private List<String> imageUrls = new ArrayList<>();
 

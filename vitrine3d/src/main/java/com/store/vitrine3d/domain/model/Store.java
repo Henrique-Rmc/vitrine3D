@@ -37,6 +37,11 @@ public class Store {
     private String slug;
 
     private String whatsappNumber;
+
+    // Bate com @Size(max = 500) em StoreRegisterRequest/StoreUpdateRequest — mesma classe de
+    // bug corrigida em Product.description: sem @Column, o Hibernate gera varchar(255), e uma
+    // descrição de 256-500 chars passa na validação da API mas quebra no INSERT/UPDATE.
+    @Column(length = 500)
     private String storeDescription;
     private String logoUrl;
     private String coverImageUrl;
