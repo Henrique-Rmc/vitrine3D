@@ -65,6 +65,13 @@ public class Store {
     @Column(nullable = false)
     private Boolean isActive = true;
 
+    private String addressStreet;
+    private String addressNumber;
+    private String addressNeighborhood;
+
+    @Column(length = 9)
+    private String addressZipCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "state_id")
     private State state;
@@ -138,6 +145,18 @@ public class Store {
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public String getAddressStreet() { return addressStreet; }
+    public void setAddressStreet(String addressStreet) { this.addressStreet = addressStreet; }
+
+    public String getAddressNumber() { return addressNumber; }
+    public void setAddressNumber(String addressNumber) { this.addressNumber = addressNumber; }
+
+    public String getAddressNeighborhood() { return addressNeighborhood; }
+    public void setAddressNeighborhood(String addressNeighborhood) { this.addressNeighborhood = addressNeighborhood; }
+
+    public String getAddressZipCode() { return addressZipCode; }
+    public void setAddressZipCode(String addressZipCode) { this.addressZipCode = addressZipCode; }
 
     public State getState() { return state; }
     public void setState(State state) { this.state = state; }

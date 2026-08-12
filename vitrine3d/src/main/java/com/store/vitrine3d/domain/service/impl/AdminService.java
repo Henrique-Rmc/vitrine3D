@@ -6,6 +6,11 @@ import com.store.vitrine3d.domain.repository.AffiliateClickRepository;
 import com.store.vitrine3d.domain.repository.AttributeDefinitionRepository;
 import com.store.vitrine3d.domain.repository.CartRepository;
 import com.store.vitrine3d.domain.repository.OrderRepository;
+import com.store.vitrine3d.domain.repository.PdvCashFlowRepository;
+import com.store.vitrine3d.domain.repository.PdvCustomerCreditRepository;
+import com.store.vitrine3d.domain.repository.PdvCustomerRepository;
+import com.store.vitrine3d.domain.repository.PdvEmployeeRepository;
+import com.store.vitrine3d.domain.repository.PdvSaleRepository;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.repository.ProductTypeRepository;
 import com.store.vitrine3d.domain.repository.RefreshTokenRepository;
@@ -43,6 +48,11 @@ public class AdminService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final WhatsappClickRepository whatsappClickRepository;
     private final AffiliateClickRepository affiliateClickRepository;
+    private final PdvSaleRepository pdvSaleRepository;
+    private final PdvCashFlowRepository pdvCashFlowRepository;
+    private final PdvCustomerCreditRepository pdvCustomerCreditRepository;
+    private final PdvCustomerRepository pdvCustomerRepository;
+    private final PdvEmployeeRepository pdvEmployeeRepository;
 
     public AdminService(StoreRepository storeRepository,
                         SubscriptionRepository subscriptionRepository,
@@ -55,7 +65,12 @@ public class AdminService {
                         StoreSlugHistoryRepository storeSlugHistoryRepository,
                         RefreshTokenRepository refreshTokenRepository,
                         WhatsappClickRepository whatsappClickRepository,
-                        AffiliateClickRepository affiliateClickRepository) {
+                        AffiliateClickRepository affiliateClickRepository,
+                        PdvSaleRepository pdvSaleRepository,
+                        PdvCashFlowRepository pdvCashFlowRepository,
+                        PdvCustomerCreditRepository pdvCustomerCreditRepository,
+                        PdvCustomerRepository pdvCustomerRepository,
+                        PdvEmployeeRepository pdvEmployeeRepository) {
         this.storeRepository = storeRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.subscriptionService = subscriptionService;
@@ -68,6 +83,11 @@ public class AdminService {
         this.refreshTokenRepository = refreshTokenRepository;
         this.whatsappClickRepository = whatsappClickRepository;
         this.affiliateClickRepository = affiliateClickRepository;
+        this.pdvSaleRepository = pdvSaleRepository;
+        this.pdvCashFlowRepository = pdvCashFlowRepository;
+        this.pdvCustomerCreditRepository = pdvCustomerCreditRepository;
+        this.pdvCustomerRepository = pdvCustomerRepository;
+        this.pdvEmployeeRepository = pdvEmployeeRepository;
     }
 
     @Transactional(readOnly = true)
@@ -139,7 +159,17 @@ public class AdminService {
         // 4. Orders: detach only — preserve as financial records
         orderRepository.detachFromStore(storeId);
 
-        // 5. Products and attribute definitions (reference product_types)
+        // 5. PDV data: sale items → sales → cash flows (operator FK resolved before employees)
+        //              credit payments → credits → customers → employees
+        pdvSaleRepository.deleteItemsByStoreId(storeId);
+        pdvSaleRepository.deleteAllByStoreId(storeId);
+        pdvCashFlowRepository.deleteAllByStoreId(storeId);
+        pdvCustomerCreditRepository.deletePaymentsByStoreId(storeId);
+        pdvCustomerCreditRepository.deleteAllByCustomerStoreId(storeId);
+        pdvCustomerRepository.deleteAllByStoreId(storeId);
+        pdvEmployeeRepository.deleteAllByStoreId(storeId);
+
+        // 6. Products and attribute definitions (reference product_types)
         productRepository.deleteAllByStoreId(storeId);
         attributeDefinitionRepository.deleteAllByStoreId(storeId);
 

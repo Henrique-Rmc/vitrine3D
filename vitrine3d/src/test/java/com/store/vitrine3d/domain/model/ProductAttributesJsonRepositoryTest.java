@@ -6,6 +6,7 @@ import com.store.vitrine3d.domain.repository.StoreRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Map;
 
@@ -20,6 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * aqui; foram validados manualmente contra o Postgres local (docker) antes de serem escritos.
  */
 @DataJpaTest
+@TestPropertySource(properties = {
+        "spring.flyway.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 class ProductAttributesJsonRepositoryTest {
 
     @Autowired private ProductRepository productRepository;

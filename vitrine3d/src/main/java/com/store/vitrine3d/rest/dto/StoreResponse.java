@@ -21,6 +21,10 @@ public class StoreResponse {
     private String coverImageUrl;
     private List<String> promoImageUrls;
     private Boolean isActive;
+    private String addressStreet;
+    private String addressNumber;
+    private String addressNeighborhood;
+    private String addressZipCode;
     private Long stateId;
     private String stateName;
     private String stateAbbreviation;
@@ -82,6 +86,10 @@ public class StoreResponse {
             dto.setBusinessTypeName(store.getBusinessType().getName());
         }
 
+        dto.setAddressStreet(store.getAddressStreet());
+        dto.setAddressNumber(store.getAddressNumber());
+        dto.setAddressNeighborhood(store.getAddressNeighborhood());
+        dto.setAddressZipCode(store.getAddressZipCode());
         dto.setProfileType(store.getProfileType());
         dto.setStoreNameFont(store.getThemeConfig().get("storeNameFont"));
         dto.setCoverColor(store.getThemeConfig().get("coverColor"));
