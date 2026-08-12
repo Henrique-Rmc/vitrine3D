@@ -47,6 +47,14 @@ public class Product {
     @Column(nullable = false)
     private Boolean featured = false;
 
+    // columnDefinition com DEFAULT obrigatório: ADD COLUMN NOT NULL sem DEFAULT falha no
+    // PostgreSQL quando a tabela já tem linhas (existing rows ficariam NULL → violação).
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
+    private Boolean trackStock = false;
+
+    @Column(nullable = false, columnDefinition = "integer not null default 0")
+    private Integer stockQuantity = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
@@ -90,6 +98,12 @@ public class Product {
 
     public Boolean getFeatured() { return featured; }
     public void setFeatured(Boolean featured) { this.featured = featured; }
+
+    public Boolean getTrackStock() { return trackStock; }
+    public void setTrackStock(Boolean trackStock) { this.trackStock = trackStock; }
+
+    public Integer getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
 
     public Store getStore() { return store; }
     public void setStore(Store store) { this.store = store; }

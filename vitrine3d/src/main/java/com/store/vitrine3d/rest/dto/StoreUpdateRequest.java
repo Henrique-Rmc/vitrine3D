@@ -21,6 +21,18 @@ public class StoreUpdateRequest {
     @Size(max = 500, message = "Store description must not exceed 500 characters")
     private String storeDescription;
 
+    @Size(max = 150)
+    private String addressStreet;
+
+    @Size(max = 20)
+    private String addressNumber;
+
+    @Size(max = 100)
+    private String addressNeighborhood;
+
+    @Pattern(regexp = "\\d{5}-?\\d{3}", message = "CEP inválido")
+    private String addressZipCode;
+
     private Long stateId;
     private Long cityId;
     private Long businessTypeId;

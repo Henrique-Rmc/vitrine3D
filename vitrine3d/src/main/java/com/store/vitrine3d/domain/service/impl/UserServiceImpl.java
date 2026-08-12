@@ -125,6 +125,10 @@ public class UserServiceImpl implements UserService {
         if (request.getUserName() != null) store.setUserName(request.getUserName());
         if (request.getWhatsappNumber() != null) store.setWhatsappNumber(request.getWhatsappNumber());
         if (request.getStoreDescription() != null) store.setStoreDescription(request.getStoreDescription());
+        if (request.getAddressStreet() != null) store.setAddressStreet(request.getAddressStreet());
+        if (request.getAddressNumber() != null) store.setAddressNumber(request.getAddressNumber());
+        if (request.getAddressNeighborhood() != null) store.setAddressNeighborhood(request.getAddressNeighborhood());
+        if (request.getAddressZipCode() != null) store.setAddressZipCode(request.getAddressZipCode());
 
         if (request.getStoreName() != null && !request.getStoreName().equals(store.getStoreName())) {
             String oldSlug = store.getSlug();
