@@ -34,6 +34,27 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query(value = "DELETE FROM product_images WHERE product_id IN (SELECT id FROM products WHERE store_id = :storeId)", nativeQuery = true)
     void deleteImagesByStoreId(@Param("storeId") UUID storeId);
 
+    /**
+     * Reescreve o valor de um atributo ENUM (Product.attributes, jsonb) em todo produto da loja
+     * que ainda referencia o valor antigo de uma opcao renomeada — sem isso, o produto ficaria
+     * com um valor orfao que nao bate mais com nenhuma opcao valida do AttributeDefinition.
+     * productTypeId nulo = atributo geral, aplica a todos os produtos da loja; preenchido =
+     * so aos produtos daquele ProductType (mesma semantica de AttributeDefinition.productType).
+     */
+    @Modifying
+    @Query(value = """
+            UPDATE products
+            SET attributes = jsonb_set(attributes, ('{' || :key || '}')::text[], to_jsonb(cast(:newValue as text)))
+            WHERE store_id = :storeId
+              AND (:productTypeId IS NULL OR product_type_id = :productTypeId)
+              AND attributes ->> :key = :oldValue
+            """, nativeQuery = true)
+    void renameAttributeOptionValue(@Param("storeId") UUID storeId,
+                                     @Param("productTypeId") Long productTypeId,
+                                     @Param("key") String key,
+                                     @Param("oldValue") String oldValue,
+                                     @Param("newValue") String newValue);
+
     @Modifying
     @Query("DELETE FROM Product p WHERE p.store.id = :storeId")
     void deleteAllByStoreId(@Param("storeId") UUID storeId);

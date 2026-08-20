@@ -10,6 +10,7 @@ import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.service.CurrentStoreResolver;
 import com.store.vitrine3d.domain.specification.ProductSpec;
 import com.store.vitrine3d.rest.dto.ProductTypeCreateRequest;
+import com.store.vitrine3d.rest.dto.ProductTypeUpdateRequest;
 import com.store.vitrine3d.rest.exception.BusinessRuleException;
 import com.store.vitrine3d.rest.exception.ResourceNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
@@ -68,15 +69,21 @@ public class ProductTypeService {
         return productTypeRepository.save(productType);
     }
 
+    /** Renomeia o rotulo de exibicao. A key nao muda — ela e a unica identidade referenciada fora do label. */
+    public ProductType update(UUID storeId, Long productTypeId, ProductTypeUpdateRequest request) {
+        Store store = findStore(storeId);
+        assertStoreOwnership(store);
+
+        ProductType productType = requireOwnProductType(store, productTypeId);
+        productType.setLabel(request.getLabel());
+        return productTypeRepository.save(productType);
+    }
+
     public void delete(UUID storeId, Long productTypeId) {
         Store store = findStore(storeId);
         assertStoreOwnership(store);
 
-        ProductType productType = productTypeRepository.findById(productTypeId)
-                .orElseThrow(() -> new ResourceNotFoundException("ProductType", productTypeId));
-        if (!productType.getStore().getId().equals(store.getId())) {
-            throw new AccessDeniedException("You can only manage your own product types.");
-        }
+        ProductType productType = requireOwnProductType(store, productTypeId);
 
         boolean inUse = productRepository.exists(
                 ProductSpec.fromStore(store.getId()).and(ProductSpec.hasProductType(productTypeId)));
@@ -105,5 +112,14 @@ public class ProductTypeService {
         if (!store.getId().equals(current.getId())) {
             throw new AccessDeniedException("You do not have permission to manage product types for this store.");
         }
+    }
+
+    private ProductType requireOwnProductType(Store store, Long productTypeId) {
+        ProductType productType = productTypeRepository.findById(productTypeId)
+                .orElseThrow(() -> new ResourceNotFoundException("ProductType", productTypeId));
+        if (!productType.getStore().getId().equals(store.getId())) {
+            throw new AccessDeniedException("You can only manage your own product types.");
+        }
+        return productType;
     }
 }

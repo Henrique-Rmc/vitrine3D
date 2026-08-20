@@ -305,4 +305,128 @@ class StoreAttributeDefinitionServiceTest {
                 .isInstanceOf(BusinessRuleException.class);
         verify(attributeDefinitionRepository, never()).save(any());
     }
+
+    // -------------------------------------------------------------------------
+    // updateLabel
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateLabel_notOwner_throwsAccessDenied() {
+        Store otherStore = new Store();
+        otherStore.setId(UUID.randomUUID());
+        when(currentStoreResolver.getCurrentStore()).thenReturn(otherStore);
+
+        assertThatThrownBy(() -> service.updateLabel(STORE_ID, 10L, "Fabricante"))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateLabel_validRequest_updatesLabel() {
+        AttributeDefinition definition = definition(10L, "marca", store);
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+        when(attributeDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateLabel(STORE_ID, 10L, "Fabricante");
+
+        assertThat(definition.getLabel()).isEqualTo("Fabricante");
+        verify(attributeDefinitionRepository).save(definition);
+    }
+
+    // -------------------------------------------------------------------------
+    // renameOption
+    // -------------------------------------------------------------------------
+
+    @Test
+    void renameOption_notEnumType_throws() {
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition(10L, "marca", store)));
+
+        assertThatThrownBy(() -> service.renameOption(STORE_ID, 10L, "Natura", "Natura Cosmeticos"))
+                .isInstanceOf(BusinessRuleException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
+        verifyNoInteractions(productRepository);
+    }
+
+    @Test
+    void renameOption_oldValueNotFound_throws() {
+        AttributeDefinition definition = enumDefinition(10L, "marca", store);
+        definition.getEnumOptions().add("Avon");
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+
+        assertThatThrownBy(() -> service.renameOption(STORE_ID, 10L, "Natura", "Natura Cosmeticos"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Natura");
+        verify(attributeDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void renameOption_newValueBlank_throws() {
+        AttributeDefinition definition = enumDefinition(10L, "marca", store);
+        definition.getEnumOptions().add("Natura");
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+
+        assertThatThrownBy(() -> service.renameOption(STORE_ID, 10L, "Natura", "   "))
+                .isInstanceOf(BusinessRuleException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void renameOption_newValueCollidesWithAnotherExistingOption_throws() {
+        AttributeDefinition definition = enumDefinition(10L, "marca", store);
+        definition.getEnumOptions().add("Natura");
+        definition.getEnumOptions().add("Avon");
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+
+        assertThatThrownBy(() -> service.renameOption(STORE_ID, 10L, "Natura", "Avon"))
+                .isInstanceOf(BusinessRuleException.class);
+        verify(attributeDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void renameOption_validRequest_replacesInPlaceAndBackfillsProducts() {
+        AttributeDefinition definition = enumDefinition(10L, "marca", store);
+        definition.getEnumOptions().add("Avon");
+        definition.getEnumOptions().add("Natura");
+        definition.getEnumOptions().add("Eudora");
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+        when(attributeDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.renameOption(STORE_ID, 10L, "Natura", "Natura Cosmeticos");
+
+        assertThat(definition.getEnumOptions()).containsExactly("Avon", "Natura Cosmeticos", "Eudora");
+        verify(productRepository).renameAttributeOptionValue(STORE_ID, null, "marca", "Natura", "Natura Cosmeticos");
+    }
+
+    @Test
+    void renameOption_scopedToProductType_backfillsOnlyThatProductType() {
+        AttributeDefinition definition = enumDefinition(10L, "marca", store);
+        definition.setProductType(productType(50L, store));
+        definition.getEnumOptions().add("Natura");
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+        when(attributeDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.renameOption(STORE_ID, 10L, "Natura", "Natura Cosmeticos");
+
+        verify(productRepository).renameAttributeOptionValue(STORE_ID, 50L, "marca", "Natura", "Natura Cosmeticos");
+    }
+
+    @Test
+    void renameOption_sameValueAfterTrim_skipsBackfill() {
+        AttributeDefinition definition = enumDefinition(10L, "marca", store);
+        definition.getEnumOptions().add("Natura");
+        when(currentStoreResolver.getCurrentStore()).thenReturn(store);
+        when(attributeDefinitionRepository.findById(10L)).thenReturn(Optional.of(definition));
+        when(attributeDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.renameOption(STORE_ID, 10L, "Natura", "Natura");
+
+        verifyNoInteractions(productRepository);
+    }
 }

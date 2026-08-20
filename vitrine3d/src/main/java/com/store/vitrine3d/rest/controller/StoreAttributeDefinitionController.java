@@ -3,7 +3,9 @@ package com.store.vitrine3d.rest.controller;
 import com.store.vitrine3d.domain.service.impl.StoreAttributeDefinitionService;
 import com.store.vitrine3d.rest.dto.AttributeDefinitionCreateRequest;
 import com.store.vitrine3d.rest.dto.AttributeDefinitionResponse;
+import com.store.vitrine3d.rest.dto.AttributeDefinitionUpdateRequest;
 import com.store.vitrine3d.rest.dto.AttributeOptionCreateRequest;
+import com.store.vitrine3d.rest.dto.AttributeOptionRenameRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,6 +51,26 @@ public class StoreAttributeDefinitionController {
     public ResponseEntity<Void> deleteCustom(@PathVariable UUID storeId, @PathVariable Long attributeDefinitionId) {
         service.deleteCustom(storeId, attributeDefinitionId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Renomeia o rotulo de exibicao de um atributo")
+    @PutMapping("/{attributeDefinitionId}")
+    public ResponseEntity<AttributeDefinitionResponse> updateLabel(
+            @PathVariable UUID storeId,
+            @PathVariable Long attributeDefinitionId,
+            @Valid @RequestBody AttributeDefinitionUpdateRequest request) {
+        return ResponseEntity.ok(
+                AttributeDefinitionResponse.from(service.updateLabel(storeId, attributeDefinitionId, request.getLabel())));
+    }
+
+    @Operation(summary = "Renomeia um valor de opcao existente, atualizando tambem os produtos que ja usam o valor antigo")
+    @PutMapping("/{attributeDefinitionId}/options")
+    public ResponseEntity<AttributeDefinitionResponse> renameOption(
+            @PathVariable UUID storeId,
+            @PathVariable Long attributeDefinitionId,
+            @Valid @RequestBody AttributeOptionRenameRequest request) {
+        return ResponseEntity.ok(AttributeDefinitionResponse.from(
+                service.renameOption(storeId, attributeDefinitionId, request.getOldValue(), request.getNewValue())));
     }
 
     @Operation(summary = "Cadastra um valor de opcao pra um atributo do tipo lista (ENUM) da propria loja")

@@ -3,6 +3,7 @@ package com.store.vitrine3d.rest.controller;
 import com.store.vitrine3d.domain.service.impl.ProductTypeService;
 import com.store.vitrine3d.rest.dto.ProductTypeCreateRequest;
 import com.store.vitrine3d.rest.dto.ProductTypeResponse;
+import com.store.vitrine3d.rest.dto.ProductTypeUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,6 +40,15 @@ public class ProductTypeController {
             @Valid @RequestBody ProductTypeCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ProductTypeResponse.from(service.create(storeId, request)));
+    }
+
+    @Operation(summary = "Renomeia o rotulo de exibicao de um tipo de produto")
+    @PutMapping("/{productTypeId}")
+    public ResponseEntity<ProductTypeResponse> update(
+            @PathVariable UUID storeId,
+            @PathVariable Long productTypeId,
+            @Valid @RequestBody ProductTypeUpdateRequest request) {
+        return ResponseEntity.ok(ProductTypeResponse.from(service.update(storeId, productTypeId, request)));
     }
 
     @Operation(summary = "Remove um tipo de produto (bloqueado se algum produto ainda o usa)")

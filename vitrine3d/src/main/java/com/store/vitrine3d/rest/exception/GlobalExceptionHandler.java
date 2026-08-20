@@ -2,6 +2,7 @@ package com.store.vitrine3d.rest.exception;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -9,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -184,6 +186,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException ex) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY,
                 ErrorResponse.of(HttpStatus.UNPROCESSABLE_ENTITY, ex.getCode(), ex.getMessage()));
+    }
+
+    // -------------------------------------------------------------------------
+    // 503 — Banco de dados indisponivel (Neon suspenso retomando compute)
+    // -------------------------------------------------------------------------
+
+    /**
+     * CannotCreateTransactionException/DataAccessResourceFailureException sao lancadas na
+     * ABERTURA da conexao/transacao — ou seja, antes do corpo do metodo @Transactional rodar.
+     * Isso garante que nenhum efeito colateral aconteceu ainda, o que e o que torna essa falha
+     * segura pra retry automatico (ver DatabaseWarmupRetryFilter, que procura o codigo
+     * DATABASE_WARMING_UP abaixo pra decidir se vale tentar de novo).
+     */
+    @ExceptionHandler({CannotCreateTransactionException.class, DataAccessResourceFailureException.class})
+    public ResponseEntity<ErrorResponse> handleDatabaseWarmingUp(Exception ex) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE,
+                ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, "DATABASE_WARMING_UP",
+                        "O banco de dados está retomando de um período ocioso. Tente novamente em instantes."));
     }
 
     // -------------------------------------------------------------------------

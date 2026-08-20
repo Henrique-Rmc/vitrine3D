@@ -81,6 +81,63 @@ public class StoreAttributeDefinitionService {
         return attributeDefinitionRepository.save(definition);
     }
 
+    /** Renomeia o rotulo de exibicao do atributo. A key nao muda — e ela quem indexa Product.attributes. */
+    public AttributeDefinition updateLabel(UUID storeId, Long attributeDefinitionId, String label) {
+        Store store = findStore(storeId);
+        assertStoreOwnership(store);
+
+        AttributeDefinition definition = requireOwnAttribute(store, attributeDefinitionId);
+        definition.setLabel(label);
+        return attributeDefinitionRepository.save(definition);
+    }
+
+    /**
+     * Renomeia um valor de opcao ja cadastrado (ex.: corrigir "Natura" pra outro texto), e
+     * reescreve o mesmo valor em todo produto que ja tenha essa opcao selecionada — sem isso o
+     * produto ficaria com um valor orfao que nao bate mais com nenhuma opcao valida (ver
+     * EnumAttributeTypeHandler.normalize) e falharia na proxima validacao.
+     */
+    public AttributeDefinition renameOption(UUID storeId, Long attributeDefinitionId, String oldValue, String newValue) {
+        Store store = findStore(storeId);
+        assertStoreOwnership(store);
+
+        AttributeDefinition definition = requireOwnAttribute(store, attributeDefinitionId);
+
+        if (definition.getType() != AttributeType.ENUM) {
+            throw new BusinessRuleException("NOT_ENUM_ATTRIBUTE",
+                    "Only ENUM attributes have option values to rename.");
+        }
+
+        String trimmedOld = oldValue != null ? oldValue.trim() : "";
+        String trimmedNew = newValue != null ? newValue.trim() : "";
+        if (trimmedNew.isEmpty()) {
+            throw new BusinessRuleException("INVALID_OPTION_VALUE", "New option value must not be blank.");
+        }
+
+        int index = definition.getEnumOptions().indexOf(trimmedOld);
+        if (index < 0) {
+            throw new BusinessRuleException("OPTION_NOT_FOUND",
+                    "Option '" + trimmedOld + "' does not exist for this attribute.");
+        }
+
+        boolean unchanged = trimmedOld.equals(trimmedNew);
+        if (!unchanged && definition.getEnumOptions().contains(trimmedNew)) {
+            throw new BusinessRuleException("OPTION_ALREADY_EXISTS",
+                    "Option '" + trimmedNew + "' already exists for this attribute.");
+        }
+
+        definition.getEnumOptions().set(index, trimmedNew);
+        AttributeDefinition saved = attributeDefinitionRepository.save(definition);
+
+        if (!unchanged) {
+            Long productTypeId = definition.getProductType() != null ? definition.getProductType().getId() : null;
+            productRepository.renameAttributeOptionValue(
+                    store.getId(), productTypeId, definition.getKey(), trimmedOld, trimmedNew);
+        }
+
+        return saved;
+    }
+
     public AttributeDefinition createCustom(UUID storeId, AttributeDefinitionCreateRequest request) {
         Store store = findStore(storeId);
         assertStoreOwnership(store);
