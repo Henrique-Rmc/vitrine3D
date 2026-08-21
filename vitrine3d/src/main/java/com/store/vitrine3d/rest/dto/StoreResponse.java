@@ -32,8 +32,7 @@ public class StoreResponse {
     private Long cityId;
     private String cityName;
     private String slug;
-    private Long storeTemplateId;
-    private String storeTemplateName;
+    private String presetSlug;
     private LayoutMode storeLayoutMode;
     private StoreProfileType profileType;
     private boolean emailVerified;
@@ -83,10 +82,7 @@ public class StoreResponse {
             dto.setCityId(store.getCity().getId());
             dto.setCityName(store.getCity().getName());
         }
-        if (store.getStoreTemplate() != null) {
-            dto.setStoreTemplateId(store.getStoreTemplate().getId());
-            dto.setStoreTemplateName(store.getStoreTemplate().getName());
-        }
+        dto.setPresetSlug(store.getPresetSlug());
         dto.setStoreLayoutMode(store.getLayoutMode());
 
         dto.setAddressStreet(store.getAddressStreet());

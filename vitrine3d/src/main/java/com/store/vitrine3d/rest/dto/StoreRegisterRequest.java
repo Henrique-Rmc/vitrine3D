@@ -1,5 +1,6 @@
 package com.store.vitrine3d.rest.dto;
 
+import com.store.vitrine3d.domain.model.LayoutMode;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -35,5 +36,8 @@ public class StoreRegisterRequest {
 
     private Long stateId;
     private Long cityId;
-    private Long storeTemplateId;
+    private LayoutMode layoutMode;
+
+    @Size(max = 100)
+    private String presetSlug;
 }

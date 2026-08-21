@@ -36,8 +36,10 @@ public class StoreUpdateRequest {
 
     private Long stateId;
     private Long cityId;
-    private Long storeTemplateId;
     private LayoutMode layoutMode;
+
+    @Size(max = 100)
+    private String presetSlug;
     private StoreProfileType profileType;
 
     // PatchField distingue "não enviado" (não mexe no tema) de "enviado como null" (remove a

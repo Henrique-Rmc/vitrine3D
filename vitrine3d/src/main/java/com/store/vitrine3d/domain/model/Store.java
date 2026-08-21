@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+
 @Entity
 @Table(name = "stores")
 public class Store {
@@ -80,9 +81,8 @@ public class Store {
     @JoinColumn(name = "city_id")
     private City city;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_template_id")
-    private StoreTemplate storeTemplate;
+    @Column(length = 100)
+    private String presetSlug;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
@@ -168,8 +168,8 @@ public class Store {
     public City getCity() { return city; }
     public void setCity(City city) { this.city = city; }
 
-    public StoreTemplate getStoreTemplate() { return storeTemplate; }
-    public void setStoreTemplate(StoreTemplate storeTemplate) { this.storeTemplate = storeTemplate; }
+    public String getPresetSlug() { return presetSlug; }
+    public void setPresetSlug(String presetSlug) { this.presetSlug = presetSlug; }
 
     public LayoutMode getLayoutMode() { return layoutMode; }
     public void setLayoutMode(LayoutMode layoutMode) { this.layoutMode = layoutMode; }
