@@ -15,8 +15,6 @@ public class AttributeDefinition {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Todo atributo pertence a uma loja — nao existe mais atributo global/compartilhado
-    // entre lojas (esse papel era do BusinessType, que virou so um rotulo de tracking).
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;

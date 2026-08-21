@@ -3,15 +3,16 @@ package com.store.vitrine3d.infrastructure;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.store.vitrine3d.domain.model.BusinessType;
+import com.store.vitrine3d.domain.model.LayoutMode;
+import com.store.vitrine3d.domain.model.StoreTemplate;
 import com.store.vitrine3d.domain.model.City;
 import com.store.vitrine3d.domain.model.AdminUser;
 import com.store.vitrine3d.domain.model.PlanLimit;
 import com.store.vitrine3d.domain.model.State;
 import com.store.vitrine3d.domain.model.SubscriptionPlan;
 import com.store.vitrine3d.domain.repository.AdminUserRepository;
-import com.store.vitrine3d.domain.repository.BusinessTypeRepository;
 import com.store.vitrine3d.domain.repository.CityRepository;
+import com.store.vitrine3d.domain.repository.StoreTemplateRepository;
 import com.store.vitrine3d.domain.repository.PlanLimitRepository;
 import com.store.vitrine3d.domain.repository.StateRepository;
 import lombok.Data;
@@ -55,7 +56,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final StateRepository stateRepository;
     private final CityRepository cityRepository;
-    private final BusinessTypeRepository businessTypeRepository;
+    private final StoreTemplateRepository storeTemplateRepository;
     private final AdminUserRepository adminUserRepository;
     private final PlanLimitRepository planLimitRepository;
     private final PasswordEncoder passwordEncoder;
@@ -69,14 +70,14 @@ public class DataInitializer implements CommandLineRunner {
 
     public DataInitializer(StateRepository stateRepository,
                            CityRepository cityRepository,
-                           BusinessTypeRepository businessTypeRepository,
+                           StoreTemplateRepository storeTemplateRepository,
                            AdminUserRepository adminUserRepository,
                            PlanLimitRepository planLimitRepository,
                            PasswordEncoder passwordEncoder,
                            ObjectMapper objectMapper) {
         this.stateRepository = stateRepository;
         this.cityRepository = cityRepository;
-        this.businessTypeRepository = businessTypeRepository;
+        this.storeTemplateRepository = storeTemplateRepository;
         this.adminUserRepository = adminUserRepository;
         this.planLimitRepository = planLimitRepository;
         this.passwordEncoder = passwordEncoder;
@@ -87,7 +88,7 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) throws Exception {
         seedStatesAndCities();
-        seedBusinessTypes();
+        seedStoreTemplates();
         seedAdmin();
         seedPlanLimits();
     }
@@ -121,40 +122,25 @@ public class DataInitializer implements CommandLineRunner {
      * — nao carregam mais atributo nenhum. Quem monta o schema de atributos de cada loja e
      * o ProductType, criado pela propria loja sob demanda.
      */
-    private void seedBusinessTypes() {
-        seedBusinessType("Automóveis e Veículos", "automoveis");
-        seedBusinessType("Imóveis", "imoveis");
-        seedBusinessType("Moda e Vestuário", "moda-vestuario");
-        seedBusinessType("Calçados", "calcados");
-        seedBusinessType("Joias e Acessórios", "joias-acessorios");
-        seedBusinessType("Beleza e Estética", "beleza-estetica");
-        seedBusinessType("Saúde e Bem-estar", "saude-bem-estar");
-        seedBusinessType("Eletrônicos e Informática", "eletronicos");
-        seedBusinessType("Eletrodomésticos", "eletrodomesticos");
-        seedBusinessType("Casa e Decoração", "casa-decoracao");
-        seedBusinessType("Móveis", "moveis");
-        seedBusinessType("Materiais de Construção", "materiais-construcao");
-        seedBusinessType("Alimentos e Bebidas", "alimentos-bebidas");
-        seedBusinessType("Pet Shop", "pet-shop");
-        seedBusinessType("Livros e Papelaria", "livros-papelaria");
-        seedBusinessType("Brinquedos e Jogos", "brinquedos-jogos");
-        seedBusinessType("Geek e Colecionáveis", "geek-colecionaveis");
-        seedBusinessType("Esportes e Fitness", "esportes-fitness");
-        seedBusinessType("Instrumentos Musicais", "instrumentos-musicais");
-        seedBusinessType("Arte e Artesanato", "arte-artesanato");
-        seedBusinessType("Presentes e Papelaria", "presentes-papelaria");
-        seedBusinessType("Serviços Profissionais", "servicos-profissionais");
-        seedBusinessType("Consultórios e Clínicas", "consultorios-clinicas");
-        seedBusinessType("Outro", "outro");
+    private void seedStoreTemplates() {
+        seedStoreTemplate("Vestuário",               "vestuario",          LayoutMode.LOJA,     "Lojas de roupas e acessórios");
+        seedStoreTemplate("Corretores Imobiliários", "imoveis",            LayoutMode.SERVICOS, "Corretores e imobiliárias");
+        seedStoreTemplate("Veículos",                "veiculos",           LayoutMode.LOJA,     "Lojas que revendem veículos");
+        seedStoreTemplate("Peças 3D",                "pecas_3d",           LayoutMode.LOJA,     "Vendedores de peças impressas em 3D");
+        seedStoreTemplate("Loja de Anime",           "anime_nerd",         LayoutMode.LOJA,     "Lojas de anime, geek e cultura pop");
+        seedStoreTemplate("Serviços Gerais",         "servicos-gerais",    LayoutMode.SERVICOS, "Prestadores de serviços em geral");
+        seedStoreTemplate("Outro",                   "outro",              LayoutMode.LOJA,     "Outros tipos de negócio");
     }
 
-    private void seedBusinessType(String name, String slug) {
-        if (businessTypeRepository.existsBySlug(slug)) return;
+    private void seedStoreTemplate(String name, String slug, LayoutMode layoutMode, String description) {
+        if (storeTemplateRepository.existsBySlug(slug)) return;
 
-        BusinessType businessType = new BusinessType();
-        businessType.setName(name);
-        businessType.setSlug(slug);
-        businessTypeRepository.save(businessType);
+        StoreTemplate template = new StoreTemplate();
+        template.setName(name);
+        template.setSlug(slug);
+        template.setLayoutMode(layoutMode);
+        template.setDescription(description);
+        storeTemplateRepository.save(template);
     }
 
     private void seedStatesAndCities() throws Exception {

@@ -1,5 +1,6 @@
 package com.store.vitrine3d.rest.dto;
 
+import com.store.vitrine3d.domain.model.LayoutMode;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.StoreProfileType;
 import com.store.vitrine3d.domain.model.Subscription;
@@ -31,8 +32,9 @@ public class StoreResponse {
     private Long cityId;
     private String cityName;
     private String slug;
-    private Long businessTypeId;
-    private String businessTypeName;
+    private Long storeTemplateId;
+    private String storeTemplateName;
+    private LayoutMode storeLayoutMode;
     private StoreProfileType profileType;
     private boolean emailVerified;
     private SubscriptionResponse subscription;
@@ -81,10 +83,11 @@ public class StoreResponse {
             dto.setCityId(store.getCity().getId());
             dto.setCityName(store.getCity().getName());
         }
-        if (store.getBusinessType() != null) {
-            dto.setBusinessTypeId(store.getBusinessType().getId());
-            dto.setBusinessTypeName(store.getBusinessType().getName());
+        if (store.getStoreTemplate() != null) {
+            dto.setStoreTemplateId(store.getStoreTemplate().getId());
+            dto.setStoreTemplateName(store.getStoreTemplate().getName());
         }
+        dto.setStoreLayoutMode(store.getLayoutMode());
 
         dto.setAddressStreet(store.getAddressStreet());
         dto.setAddressNumber(store.getAddressNumber());

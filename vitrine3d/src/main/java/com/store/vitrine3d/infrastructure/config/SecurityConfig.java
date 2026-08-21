@@ -52,7 +52,7 @@ public class SecurityConfig {
                 // Localização
                 .requestMatchers(HttpMethod.GET, "/api/locations/**").permitAll()
                 // Tipos de negócio e seus atributos dinâmicos (leitura pública — formulário de cadastro)
-                .requestMatchers(HttpMethod.GET, "/api/business-types/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/store-templates/**").permitAll()
                 // Vitrine pública — busca com filtros
                 .requestMatchers(HttpMethod.GET, "/api/products/store/*/search").permitAll()
                 // Atributos efetivos da loja (globais nao escondidos + customizados) — leitura pública

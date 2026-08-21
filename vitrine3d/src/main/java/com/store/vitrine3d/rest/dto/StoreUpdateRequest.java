@@ -1,6 +1,7 @@
 package com.store.vitrine3d.rest.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.store.vitrine3d.domain.model.LayoutMode;
 import com.store.vitrine3d.domain.model.StoreProfileType;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -35,7 +36,8 @@ public class StoreUpdateRequest {
 
     private Long stateId;
     private Long cityId;
-    private Long businessTypeId;
+    private Long storeTemplateId;
+    private LayoutMode layoutMode;
     private StoreProfileType profileType;
 
     // PatchField distingue "não enviado" (não mexe no tema) de "enviado como null" (remove a

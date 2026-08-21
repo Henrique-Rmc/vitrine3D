@@ -81,8 +81,12 @@ public class Store {
     private City city;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "business_type_id")
-    private BusinessType businessType;
+    @JoinColumn(name = "store_template_id")
+    private StoreTemplate storeTemplate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private LayoutMode layoutMode = LayoutMode.LOJA;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -164,8 +168,11 @@ public class Store {
     public City getCity() { return city; }
     public void setCity(City city) { this.city = city; }
 
-    public BusinessType getBusinessType() { return businessType; }
-    public void setBusinessType(BusinessType businessType) { this.businessType = businessType; }
+    public StoreTemplate getStoreTemplate() { return storeTemplate; }
+    public void setStoreTemplate(StoreTemplate storeTemplate) { this.storeTemplate = storeTemplate; }
+
+    public LayoutMode getLayoutMode() { return layoutMode; }
+    public void setLayoutMode(LayoutMode layoutMode) { this.layoutMode = layoutMode; }
 
     public StoreProfileType getProfileType() { return profileType; }
     public void setProfileType(StoreProfileType profileType) { this.profileType = profileType; }

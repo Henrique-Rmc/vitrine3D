@@ -3,11 +3,12 @@ package com.store.vitrine3d.domain.service.impl;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.model.StoreProfileType;
 import com.store.vitrine3d.domain.model.StoreSlugHistory;
-import com.store.vitrine3d.domain.repository.BusinessTypeRepository;
+import com.store.vitrine3d.domain.model.StoreTemplate;
 import com.store.vitrine3d.domain.repository.CityRepository;
 import com.store.vitrine3d.domain.repository.StateRepository;
 import com.store.vitrine3d.domain.repository.StoreRepository;
 import com.store.vitrine3d.domain.repository.StoreSlugHistoryRepository;
+import com.store.vitrine3d.domain.repository.StoreTemplateRepository;
 import com.store.vitrine3d.domain.service.UserService;
 import com.store.vitrine3d.infrastructure.storage.StorageService;
 import com.store.vitrine3d.rest.dto.StoreRegisterRequest;
@@ -43,7 +44,7 @@ public class UserServiceImpl implements UserService {
     private final StoreSlugHistoryRepository slugHistoryRepository;
     private final StateRepository stateRepository;
     private final CityRepository cityRepository;
-    private final BusinessTypeRepository businessTypeRepository;
+    private final StoreTemplateRepository storeTemplateRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
     private final SubscriptionService subscriptionService;
@@ -52,7 +53,7 @@ public class UserServiceImpl implements UserService {
                            StoreSlugHistoryRepository slugHistoryRepository,
                            StateRepository stateRepository,
                            CityRepository cityRepository,
-                           BusinessTypeRepository businessTypeRepository,
+                           StoreTemplateRepository storeTemplateRepository,
                            PasswordEncoder passwordEncoder,
                            StorageService storageService,
                            SubscriptionService subscriptionService) {
@@ -60,7 +61,7 @@ public class UserServiceImpl implements UserService {
         this.slugHistoryRepository = slugHistoryRepository;
         this.stateRepository = stateRepository;
         this.cityRepository = cityRepository;
-        this.businessTypeRepository = businessTypeRepository;
+        this.storeTemplateRepository = storeTemplateRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
         this.subscriptionService = subscriptionService;
@@ -99,9 +100,12 @@ public class UserServiceImpl implements UserService {
             store.setCity(cityRepository.findById(request.getCityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cidade", request.getCityId())));
         }
-        if (request.getBusinessTypeId() != null) {
-            store.setBusinessType(businessTypeRepository.findById(request.getBusinessTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de negocio", request.getBusinessTypeId())));
+        StoreTemplate template = null;
+        if (request.getStoreTemplateId() != null) {
+            template = storeTemplateRepository.findById(request.getStoreTemplateId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Template", request.getStoreTemplateId()));
+            store.setStoreTemplate(template);
+            store.setLayoutMode(template.getLayoutMode());
         }
 
         Store saved = storeRepository.save(store);
@@ -145,9 +149,14 @@ public class UserServiceImpl implements UserService {
             store.setCity(cityRepository.findById(request.getCityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cidade", request.getCityId())));
         }
-        if (request.getBusinessTypeId() != null) {
-            store.setBusinessType(businessTypeRepository.findById(request.getBusinessTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de negocio", request.getBusinessTypeId())));
+        if (request.getStoreTemplateId() != null) {
+            StoreTemplate tmpl = storeTemplateRepository.findById(request.getStoreTemplateId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Template", request.getStoreTemplateId()));
+            store.setStoreTemplate(tmpl);
+            store.setLayoutMode(tmpl.getLayoutMode());
+        }
+        if (request.getLayoutMode() != null) {
+            store.setLayoutMode(request.getLayoutMode());
         }
         if (request.getProfileType() != null) {
             store.setProfileType(request.getProfileType());
