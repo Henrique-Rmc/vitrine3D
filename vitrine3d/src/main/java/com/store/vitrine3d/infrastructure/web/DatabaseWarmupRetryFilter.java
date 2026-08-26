@@ -49,6 +49,15 @@ public class DatabaseWarmupRetryFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
+        // Multipart requests cannot be retried — Tomcat reads the underlying CoyoteInputStream
+        // directly for part parsing, bypassing any wrapper's getInputStream(). Caching the body
+        // here would close that stream before Tomcat gets to it, causing "Stream closed".
+        String contentType = request.getContentType();
+        if (contentType != null && contentType.startsWith("multipart/")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         HttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request);
         int maxAttempts = backoffMs.length + 1;
 

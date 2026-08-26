@@ -2,6 +2,8 @@ package com.store.vitrine3d.rest.exception;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +22,15 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // -------------------------------------------------------------------------
     // 400 — Validation
@@ -172,6 +177,13 @@ public class GlobalExceptionHandler {
                         "Image size exceeds the maximum allowed limit of 2MB"));
     }
 
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(MissingServletRequestPartException ex) {
+        Map<String, String> fields = Map.of(ex.getRequestPartName(), "Multipart part is required");
+        return badRequest(ErrorResponse.of(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED",
+                "Required multipart part is missing").withFields(fields));
+    }
+
     // -------------------------------------------------------------------------
     // 422 — Business Rule Violation
     // -------------------------------------------------------------------------
@@ -223,6 +235,7 @@ public class GlobalExceptionHandler {
                     ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, "STORAGE_UNAVAILABLE",
                             "Falha ao enviar a imagem. Verifique sua conexão e tente novamente."));
         }
+        log.error("Unhandled RuntimeException", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
                         "An unexpected error occurred. Please try again later."));
@@ -234,6 +247,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        log.error("Unhandled Exception", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
                         "An unexpected error occurred. Please try again later."));
