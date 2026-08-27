@@ -1,15 +1,16 @@
 package com.store.vitrine3d.rest.dto;
 
-import com.store.vitrine3d.domain.model.Product;
-import com.store.vitrine3d.domain.model.StoreProfileType;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import com.store.vitrine3d.domain.model.Product;
+import com.store.vitrine3d.domain.model.StoreProfileType;
+
+import lombok.Data;
 
 @Data
 public class ProductResponse {
@@ -30,6 +31,8 @@ public class ProductResponse {
     /** Null para lojas STANDARD. */
     private String affiliateUrl;
     private long affiliateClickCount;
+    private Boolean trackStock;
+    private Integer stockQuantity;
     private Map<String, Object> attributes;
     private Long productTypeId;
     private String productTypeLabel;
@@ -53,6 +56,8 @@ public class ProductResponse {
         dto.setClickCount(clickCount);
         dto.setAffiliateUrl(product.getAffiliateUrl());
         dto.setAffiliateClickCount(affiliateClickCount);
+        dto.setStockQuantity(product.getStockQuantity());
+        dto.setTrackStock(product.getTrackStock());
         dto.setAttributes(product.getAttributes());
         if (product.getProductType() != null) {
             dto.setProductTypeId(product.getProductType().getId());
