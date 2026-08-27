@@ -37,7 +37,7 @@ public class DatabaseWarmupRetryFilter extends OncePerRequestFilter {
     private final long[] backoffMs;
 
     public DatabaseWarmupRetryFilter() {
-        this(new long[] {500, 1500});
+        this(new long[] {1000, 3000, 5000});
     }
 
     /** Visivel a testes pra nao depender de Thread.sleep real com os valores de producao. */
