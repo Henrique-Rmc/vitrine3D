@@ -22,14 +22,20 @@ public class ExpenseBatchItem {
     @Column(nullable = false)
     private String productName;
 
+    /** Rótulo livre de embalagem, snapshot do material. */
     @Column(length = 50)
     private String unit;
+
+    /** Unidade de medida da quantidade comprada — convertida para a unidade do material. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unit_code", nullable = false, length = 10)
+    private MeasurementUnit unitCode = MeasurementUnit.UN;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
-    @Column(nullable = false)
-    private int quantity = 1;
+    @Column(nullable = false, precision = 14, scale = 3)
+    private BigDecimal quantity = BigDecimal.ONE;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
@@ -53,8 +59,11 @@ public class ExpenseBatchItem {
     public BigDecimal getUnitPrice() { return unitPrice; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
-    public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public MeasurementUnit getUnitCode() { return unitCode; }
+    public void setUnitCode(MeasurementUnit unitCode) { this.unitCode = unitCode; }
+
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
 
     public BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }

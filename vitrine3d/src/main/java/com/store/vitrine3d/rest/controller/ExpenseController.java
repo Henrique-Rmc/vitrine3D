@@ -10,7 +10,9 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -48,12 +50,9 @@ public class ExpenseController {
 
     @PostMapping("/products")
     @ResponseStatus(HttpStatus.CREATED)
-    public ExpenseProductResponse findOrCreateProduct(
-            @RequestBody Map<String, String> body) {
+    public ExpenseProductResponse saveProduct(@Valid @RequestBody ExpenseProductRequest request) {
         Store store = currentStore();
-        String name = body.get("name");
-        String unit = body.get("unit");
-        return ExpenseProductResponse.from(expenseService.findOrCreateProduct(store, name, unit));
+        return ExpenseProductResponse.from(expenseService.saveProduct(store, request));
     }
 
     @PatchMapping("/products/{id}/stock")
@@ -61,8 +60,8 @@ public class ExpenseController {
             @PathVariable Long id,
             @Valid @RequestBody ExpenseStockPatchRequest request) {
         Store store = currentStore();
-        return ExpenseProductResponse.from(
-                expenseService.adjustStock(store.getId(), id, request.getQuantityDelta()));
+        return ExpenseProductResponse.from(expenseService.adjustStock(
+                store.getId(), id, request.getQuantityDelta(), request.getUnit()));
     }
 
     @GetMapping("/products/low-stock")
@@ -138,10 +137,41 @@ public class ExpenseController {
         expenseService.deactivateRecurring(store.getId(), id);
     }
 
+    /** Registra o pagamento do período. O valor é opcional: sem ele, usa o previsto na definição. */
     @PostMapping("/recurring/{id}/pay")
-    public RecurringExpenseResponse payRecurring(@PathVariable UUID id) {
+    public RecurringExpensePaymentResponse payRecurring(
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) RecurringExpensePaymentRequest request) {
         Store store = currentStore();
-        return RecurringExpenseResponse.from(expenseService.payRecurring(store.getId(), id));
+        return RecurringExpensePaymentResponse.from(
+                expenseService.payRecurring(store.getId(), id, request));
+    }
+
+    @GetMapping("/recurring/{id}/payments")
+    public List<RecurringExpensePaymentResponse> listPayments(@PathVariable UUID id) {
+        Store store = currentStore();
+        return expenseService.listPayments(store.getId(), id).stream()
+                .map(RecurringExpensePaymentResponse::from).toList();
+    }
+
+    /** Anexa comprovantes ao pagamento (boleto, comprovante de transferência). Máximo de 2. */
+    @PostMapping(value = "/recurring/payments/{paymentId}/images",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public RecurringExpensePaymentResponse addPaymentImages(
+            @PathVariable UUID paymentId,
+            @RequestPart("images") List<MultipartFile> images) {
+        Store store = currentStore();
+        return RecurringExpensePaymentResponse.from(
+                expenseService.addPaymentImages(store.getId(), paymentId, images));
+    }
+
+    @DeleteMapping("/recurring/payments/{paymentId}/images")
+    public RecurringExpensePaymentResponse removePaymentImage(
+            @PathVariable UUID paymentId,
+            @RequestParam String imageUrl) {
+        Store store = currentStore();
+        return RecurringExpensePaymentResponse.from(
+                expenseService.removePaymentImage(store.getId(), paymentId, imageUrl));
     }
 
     @GetMapping("/recurring/alerts")

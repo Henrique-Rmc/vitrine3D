@@ -2,6 +2,8 @@ package com.store.vitrine3d.domain.repository;
 
 import com.store.vitrine3d.domain.model.ExpenseProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,5 +19,8 @@ public interface ExpenseProductRepository extends JpaRepository<ExpenseProduct, 
 
     boolean existsByStoreIdAndNameIgnoreCase(UUID storeId, String name);
 
-    List<ExpenseProduct> findByStoreIdAndStockQuantityLessThanEqualOrderByNameAsc(UUID storeId, int threshold);
+    /** Alerta por material: cada um tem seu próprio limite, em vez de um valor fixo global. */
+    @Query("SELECT p FROM ExpenseProduct p WHERE p.store.id = :storeId "
+         + "AND p.stockQuantity <= p.lowStockAlert ORDER BY p.name ASC")
+    List<ExpenseProduct> findLowStock(@Param("storeId") UUID storeId);
 }
