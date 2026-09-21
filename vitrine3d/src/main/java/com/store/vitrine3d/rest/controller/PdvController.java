@@ -1,8 +1,10 @@
 package com.store.vitrine3d.rest.controller;
 
+import com.store.vitrine3d.domain.model.PdvCustomerRelationship;
 import com.store.vitrine3d.domain.model.Store;
 import com.store.vitrine3d.domain.repository.ProductRepository;
 import com.store.vitrine3d.domain.service.CurrentStoreResolver;
+import com.store.vitrine3d.domain.service.PdvBalanceService;
 import com.store.vitrine3d.domain.service.PdvCashFlowService;
 import com.store.vitrine3d.domain.service.PdvCustomerService;
 import com.store.vitrine3d.domain.service.PdvEmployeeService;
@@ -37,6 +39,7 @@ public class PdvController {
     private final PdvEmployeeService employeeService;
     private final PdvSyncService syncService;
     private final ProductRepository productRepository;
+    private final PdvBalanceService balanceService;
 
     public PdvController(CurrentStoreResolver storeResolver,
                          PdvAccessGuard accessGuard,
@@ -45,7 +48,8 @@ public class PdvController {
                          PdvCustomerService customerService,
                          PdvEmployeeService employeeService,
                          PdvSyncService syncService,
-                         ProductRepository productRepository) {
+                         ProductRepository productRepository,
+                         PdvBalanceService balanceService) {
         this.storeResolver = storeResolver;
         this.accessGuard = accessGuard;
         this.saleService = saleService;
@@ -54,6 +58,7 @@ public class PdvController {
         this.employeeService = employeeService;
         this.syncService = syncService;
         this.productRepository = productRepository;
+        this.balanceService = balanceService;
     }
 
     // ── Sales ──────────────────────────────────────────────────────────────
@@ -87,6 +92,15 @@ public class PdvController {
     public PdvSaleResponse cancelSale(@PathVariable UUID id) {
         Store store = currentStore();
         return PdvSaleResponse.from(saleService.cancelSale(store.getId(), id));
+    }
+
+    @GetMapping("/sales/discount-summary")
+    public PdvDiscountSummaryResponse getDiscountSummary(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        Store store = currentStore();
+        Instant[] range = toRange(from, to);
+        return saleService.getDiscountSummary(store.getId(), range[0], range[1]);
     }
 
     // ── Cash Flow ──────────────────────────────────────────────────────────
@@ -164,6 +178,31 @@ public class PdvController {
         return PdvCustomerCreditResponse.from(customerService.addCredit(store.getId(), id, request));
     }
 
+    @GetMapping("/customers/{id}/relationships")
+    public List<PdvCustomerRelationshipResponse> listRelationships(@PathVariable UUID id) {
+        Store store = currentStore();
+        return customerService.listRelationships(store.getId(), id).stream()
+                .map(r -> PdvCustomerRelationshipResponse.from(r, id))
+                .toList();
+    }
+
+    @PostMapping("/customers/{id}/relationships")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PdvCustomerRelationshipResponse addRelationship(
+            @PathVariable UUID id,
+            @Valid @RequestBody PdvCustomerRelationshipRequest request) {
+        Store store = currentStore();
+        PdvCustomerRelationship rel = customerService.addRelationship(store.getId(), id, request);
+        return PdvCustomerRelationshipResponse.from(rel, id);
+    }
+
+    @DeleteMapping("/customers/{id}/relationships/{relId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeRelationship(@PathVariable UUID id, @PathVariable Long relId) {
+        Store store = currentStore();
+        customerService.removeRelationship(store.getId(), id, relId);
+    }
+
     @PostMapping("/customers/{customerId}/credits/{creditId}/payments")
     @ResponseStatus(HttpStatus.CREATED)
     public PdvCreditPaymentResponse addPayment(@PathVariable UUID customerId,
@@ -226,6 +265,36 @@ public class PdvController {
         return PdvStockResponse.from(productRepository.save(product));
     }
 
+    // ── Custo do produto ───────────────────────────────────────────────────
+    // Vive aqui e não em /api/products porque ProductResponse serve rotas públicas
+    // da vitrine — expor o custo lá vazaria a margem da loja para qualquer visitante.
+
+    @GetMapping("/products/{id}/cost")
+    public PdvProductCostResponse getProductCost(@PathVariable Long id) {
+        Store store = currentStore();
+        return PdvProductCostResponse.from(requireStoreProduct(id, store));
+    }
+
+    @PatchMapping("/products/{id}/cost")
+    public PdvProductCostResponse setProductCost(@PathVariable Long id,
+                                                  @Valid @RequestBody PdvProductCostRequest request) {
+        Store store = currentStore();
+        var product = requireStoreProduct(id, store);
+        product.setCostPrice(request.getCostPrice());
+        return PdvProductCostResponse.from(productRepository.save(product));
+    }
+
+    // ── Balanço ────────────────────────────────────────────────────────────
+
+    @GetMapping("/balance")
+    public PdvBalanceResponse getBalance(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        Store store = currentStore();
+        Instant[] range = toRange(from, to);
+        return balanceService.getBalance(store.getId(), range[0], range[1]);
+    }
+
     // ── Sync ───────────────────────────────────────────────────────────────
 
     @PostMapping("/sync")
@@ -240,6 +309,11 @@ public class PdvController {
         Store store = storeResolver.getCurrentStore();
         accessGuard.assertAccess(store.getId());
         return store;
+    }
+
+    private com.store.vitrine3d.domain.model.Product requireStoreProduct(Long id, Store store) {
+        return productRepository.findByIdAndStoreId(id, store.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Produto", id.toString()));
     }
 
     private Instant[] toRange(LocalDate from, LocalDate to) {

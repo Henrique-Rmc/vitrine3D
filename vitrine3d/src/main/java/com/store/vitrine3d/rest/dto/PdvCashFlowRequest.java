@@ -32,4 +32,7 @@ public class PdvCashFlowRequest {
     private Instant flowDate;
 
     private UUID operatorId;
+
+    // Preenchido automaticamente ao pagar uma conta fixa; não vem do cliente em lançamentos manuais.
+    private UUID recurringExpenseId;
 }

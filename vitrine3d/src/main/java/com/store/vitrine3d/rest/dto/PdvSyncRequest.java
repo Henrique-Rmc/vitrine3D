@@ -10,4 +10,5 @@ import java.util.List;
 public class PdvSyncRequest {
     private List<@Valid PdvSaleRequest> sales = new ArrayList<>();
     private List<@Valid PdvCashFlowRequest> cashFlows = new ArrayList<>();
+    private List<@Valid ExpenseBatchRequest> expenseBatches = new ArrayList<>();
 }

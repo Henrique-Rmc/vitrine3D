@@ -38,6 +38,11 @@ public class PdvCashFlow {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
+    // Conta fixa que originou o lançamento (coluna simples, sem @ManyToOne:
+    // o balanço só precisa agrupar, não navegar para a entidade).
+    @Column(name = "recurring_expense_id")
+    private UUID recurringExpenseId;
+
     @Column(length = 500)
     private String description;
 
@@ -69,6 +74,9 @@ public class PdvCashFlow {
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
+
+    public UUID getRecurringExpenseId() { return recurringExpenseId; }
+    public void setRecurringExpenseId(UUID recurringExpenseId) { this.recurringExpenseId = recurringExpenseId; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

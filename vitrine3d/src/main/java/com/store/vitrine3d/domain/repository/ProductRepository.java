@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
@@ -18,6 +20,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     List<Product> findByStoreIdAndFeaturedTrueAndStoreIsActiveTrue(UUID storeId);
     List<Product> findByStoreId(UUID storeId);
     long countByStoreIdAndFeaturedTrue(UUID storeId);
+
+    Optional<Product> findByIdAndStoreId(Long id, UUID storeId);
+
+    /** Valor imobilizado em estoque, a preco de custo — bloco de posicao do balanco. */
+    @Query("SELECT COALESCE(SUM(p.costPrice * p.stockQuantity), 0) FROM Product p " +
+           "WHERE p.store.id = :storeId AND p.trackStock = true AND p.costPrice IS NOT NULL")
+    BigDecimal sumStockValueAtCost(@Param("storeId") UUID storeId);
 
     @Modifying
     @Query(value = """

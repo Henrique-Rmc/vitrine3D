@@ -37,6 +37,9 @@ public class PdvSale {
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
 
+    @Column(precision = 12, scale = 2)
+    private BigDecimal originalAmount;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
@@ -81,6 +84,9 @@ public class PdvSale {
 
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public BigDecimal getOriginalAmount() { return originalAmount; }
+    public void setOriginalAmount(BigDecimal originalAmount) { this.originalAmount = originalAmount; }
 
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }

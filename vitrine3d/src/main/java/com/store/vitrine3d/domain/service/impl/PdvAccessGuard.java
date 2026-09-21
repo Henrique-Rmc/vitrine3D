@@ -20,9 +20,11 @@ public class PdvAccessGuard {
     public void assertAccess(UUID storeId) {
         Subscription sub = subscriptionRepository.findByStoreId(storeId)
                 .orElseThrow(() -> new BusinessRuleException("PDV_NOT_AVAILABLE", "PDV requer plano Premium"));
-        if (sub.getPlan() != SubscriptionPlan.PREMIUM) {
+        boolean hasPdv = sub.getPlan() == SubscriptionPlan.PRO
+                || sub.getPlan() == SubscriptionPlan.PREMIUM;
+        if (!hasPdv) {
             throw new BusinessRuleException("PDV_NOT_AVAILABLE",
-                    "PDV requer plano Premium. Plano atual: " + sub.getPlan());
+                    "PDV requer plano Pro ou superior. Plano atual: " + sub.getPlan());
         }
     }
 }

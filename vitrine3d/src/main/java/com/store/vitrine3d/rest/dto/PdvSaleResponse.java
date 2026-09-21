@@ -19,7 +19,9 @@ public class PdvSaleResponse {
     private UUID operatorId;
     private String operatorName;
     private PaymentMethod paymentMethod;
+    private BigDecimal originalAmount;
     private BigDecimal totalAmount;
+    private BigDecimal discountAmount;
     private BigDecimal amountPaid;
     private BigDecimal changeAmount;
     private SaleStatus status;
@@ -33,7 +35,11 @@ public class PdvSaleResponse {
         dto.setId(sale.getId());
         dto.setOfflineId(sale.getOfflineId());
         dto.setPaymentMethod(sale.getPaymentMethod());
+        dto.setOriginalAmount(sale.getOriginalAmount());
         dto.setTotalAmount(sale.getTotalAmount());
+        if (sale.getOriginalAmount() != null) {
+            dto.setDiscountAmount(sale.getOriginalAmount().subtract(sale.getTotalAmount()));
+        }
         dto.setAmountPaid(sale.getAmountPaid());
         dto.setChangeAmount(sale.getChangeAmount());
         dto.setStatus(sale.getStatus());

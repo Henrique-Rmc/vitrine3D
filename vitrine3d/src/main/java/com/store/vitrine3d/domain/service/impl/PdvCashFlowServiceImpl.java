@@ -47,6 +47,7 @@ public class PdvCashFlowServiceImpl implements PdvCashFlowService {
         flow.setAmount(req.getAmount());
         flow.setDescription(req.getDescription());
         flow.setFlowDate(req.getFlowDate());
+        flow.setRecurringExpenseId(req.getRecurringExpenseId());
         if (req.getOperatorId() != null) {
             PdvEmployee operator = employeeRepository.findByIdAndStoreId(req.getOperatorId(), store.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Funcionário", req.getOperatorId().toString()));

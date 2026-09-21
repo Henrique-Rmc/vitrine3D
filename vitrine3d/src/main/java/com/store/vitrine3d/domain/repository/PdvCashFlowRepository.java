@@ -1,5 +1,6 @@
 package com.store.vitrine3d.domain.repository;
 
+import com.store.vitrine3d.domain.model.FlowCategory;
 import com.store.vitrine3d.domain.model.FlowType;
 import com.store.vitrine3d.domain.model.PdvCashFlow;
 import org.springframework.data.domain.Page;
@@ -26,4 +27,13 @@ public interface PdvCashFlowRepository extends JpaRepository<PdvCashFlow, UUID> 
 
     @Query("SELECT COUNT(cf) FROM PdvCashFlow cf WHERE cf.store.id = :storeId AND cf.type = :type AND cf.flowDate >= :from AND cf.flowDate < :to")
     long countByTypeAndPeriod(@Param("storeId") UUID storeId, @Param("type") FlowType type, @Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("SELECT COALESCE(SUM(cf.amount), 0) FROM PdvCashFlow cf WHERE cf.store.id = :storeId " +
+           "AND cf.type = :type AND cf.category = :category " +
+           "AND cf.flowDate >= :from AND cf.flowDate < :to")
+    BigDecimal sumAmountByTypeCategoryAndPeriod(@Param("storeId") UUID storeId,
+                                                @Param("type") FlowType type,
+                                                @Param("category") FlowCategory category,
+                                                @Param("from") Instant from,
+                                                @Param("to") Instant to);
 }

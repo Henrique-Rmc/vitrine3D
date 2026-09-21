@@ -12,5 +12,7 @@ public class PdvSyncResponse {
     private int salesSkipped;
     private int cashFlowsProcessed;
     private int cashFlowsSkipped;
+    private int expenseBatchesProcessed;
+    private int expenseBatchesSkipped;
     private List<String> errors;
 }

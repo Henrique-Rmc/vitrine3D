@@ -13,6 +13,10 @@ import java.util.UUID;
 public class PdvCustomerCreditResponse {
     private UUID id;
     private UUID originSaleId;
+    private String productName;
+    private Long productId;
+    private BigDecimal originalAmount;
+    private BigDecimal discountAmount;
     private BigDecimal totalDue;
     private BigDecimal amountPaid;
     private BigDecimal balance;
@@ -26,6 +30,12 @@ public class PdvCustomerCreditResponse {
         PdvCustomerCreditResponse dto = new PdvCustomerCreditResponse();
         dto.setId(credit.getId());
         dto.setOriginSaleId(credit.getOriginSaleId());
+        dto.setProductName(credit.getProductName());
+        dto.setProductId(credit.getProductId());
+        dto.setOriginalAmount(credit.getOriginalAmount());
+        if (credit.getOriginalAmount() != null) {
+            dto.setDiscountAmount(credit.getOriginalAmount().subtract(credit.getTotalDue()));
+        }
         dto.setTotalDue(credit.getTotalDue());
         dto.setAmountPaid(credit.getAmountPaid());
         dto.setBalance(credit.getBalance());

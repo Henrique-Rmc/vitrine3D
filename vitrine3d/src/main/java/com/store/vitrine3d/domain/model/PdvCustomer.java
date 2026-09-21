@@ -26,6 +26,9 @@ public class PdvCustomer {
 
     private String phone;
 
+    @Column(length = 255)
+    private String email;
+
     @Column(length = 14)
     private String cpf;
 
@@ -54,6 +57,9 @@ public class PdvCustomer {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public String getCpf() { return cpf; }
     public void setCpf(String cpf) { this.cpf = cpf; }

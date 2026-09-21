@@ -2,6 +2,7 @@ package com.store.vitrine3d.domain.service;
 
 import com.store.vitrine3d.domain.model.PdvSale;
 import com.store.vitrine3d.domain.model.Store;
+import com.store.vitrine3d.rest.dto.PdvDiscountSummaryResponse;
 import com.store.vitrine3d.rest.dto.PdvSaleRequest;
 import org.springframework.data.domain.Page;
 
@@ -14,4 +15,5 @@ public interface PdvSaleService {
     PdvSale getSale(UUID storeId, UUID saleId);
     PdvSale cancelSale(UUID storeId, UUID saleId);
     boolean isDuplicate(UUID storeId, String offlineId);
+    PdvDiscountSummaryResponse getDiscountSummary(UUID storeId, Instant from, Instant to);
 }

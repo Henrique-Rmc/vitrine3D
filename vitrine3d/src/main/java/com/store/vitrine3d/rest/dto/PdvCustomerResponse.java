@@ -13,6 +13,7 @@ public class PdvCustomerResponse {
     private UUID id;
     private String name;
     private String phone;
+    private String email;
     private String cpf;
     private String address;
     private Instant createdAt;
@@ -24,6 +25,7 @@ public class PdvCustomerResponse {
         dto.setId(customer.getId());
         dto.setName(customer.getName());
         dto.setPhone(customer.getPhone());
+        dto.setEmail(customer.getEmail());
         dto.setCpf(customer.getCpf());
         dto.setAddress(customer.getAddress());
         dto.setCreatedAt(customer.getCreatedAt());

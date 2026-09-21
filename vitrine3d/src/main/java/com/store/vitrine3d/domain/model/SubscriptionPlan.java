@@ -4,5 +4,5 @@ public enum SubscriptionPlan {
     FREE,
     BASIC,
     PRO,
-    PREMIUM   // inclui acesso ao módulo PDV
+    PREMIUM   // reservado — sem benefícios adicionais por enquanto
 }

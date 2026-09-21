@@ -25,6 +25,16 @@ public class PdvCustomerCredit {
     // Referência à venda de origem (sem FK para não bloquear cancelamento de venda)
     private UUID originSaleId;
 
+    @Column(nullable = false, length = 255)
+    private String productName;
+
+    // Referência opcional ao catálogo (sem FK hard: produto pode ser deletado)
+    @Column
+    private Long productId;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal originalAmount;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal totalDue;
 
@@ -60,6 +70,15 @@ public class PdvCustomerCredit {
 
     public UUID getOriginSaleId() { return originSaleId; }
     public void setOriginSaleId(UUID originSaleId) { this.originSaleId = originSaleId; }
+
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
+
+    public BigDecimal getOriginalAmount() { return originalAmount; }
+    public void setOriginalAmount(BigDecimal originalAmount) { this.originalAmount = originalAmount; }
 
     public BigDecimal getTotalDue() { return totalDue; }
     public void setTotalDue(BigDecimal totalDue) { this.totalDue = totalDue; }

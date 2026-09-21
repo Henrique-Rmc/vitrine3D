@@ -39,6 +39,10 @@ public class Product {
     @Column(precision = 10, scale = 2)
     private BigDecimal price;
 
+    // Custo de aquisição — base do CMV. Nullable: produtos antigos e serviços podem não ter custo.
+    @Column(precision = 10, scale = 2)
+    private BigDecimal costPrice;
+
     @Column(nullable = false)
     private Boolean isVisible = true;
 
@@ -92,6 +96,9 @@ public class Product {
 
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+
+    public BigDecimal getCostPrice() { return costPrice; }
+    public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
 
     public Boolean getIsVisible() { return isVisible; }
     public void setIsVisible(Boolean isVisible) { this.isVisible = isVisible; }

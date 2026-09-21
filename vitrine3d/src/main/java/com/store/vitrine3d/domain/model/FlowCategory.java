@@ -5,7 +5,8 @@ public enum FlowCategory {
     CREDIT_PAYMENT,
     OPENING,
     CLOSING,
-    EXPENSE,
+    EXPENSE,            // Gastos com insumos (ExpenseBatch)
+    RECURRING_EXPENSE,  // Contas fixas (RecurringExpense) — separado para o balanço não contar duas vezes
     WITHDRAWAL,
     OTHER
 }

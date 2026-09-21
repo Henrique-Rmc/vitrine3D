@@ -22,6 +22,14 @@ public class PdvSaleItem {
     @Column(nullable = false)
     private String productName;
 
+    @Column(precision = 12, scale = 2)
+    private BigDecimal originalUnitPrice;
+
+    // Snapshot do custo no momento da venda — registro de verdade do CMV.
+    // Não deriva de Product em tempo de leitura: productId é referência fraca.
+    @Column(precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
@@ -43,6 +51,12 @@ public class PdvSaleItem {
 
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
+
+    public BigDecimal getOriginalUnitPrice() { return originalUnitPrice; }
+    public void setOriginalUnitPrice(BigDecimal originalUnitPrice) { this.originalUnitPrice = originalUnitPrice; }
+
+    public BigDecimal getUnitCost() { return unitCost; }
+    public void setUnitCost(BigDecimal unitCost) { this.unitCost = unitCost; }
 
     public BigDecimal getUnitPrice() { return unitPrice; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
